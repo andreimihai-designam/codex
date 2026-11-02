@@ -36,14 +36,15 @@ These defaults do not establish requirements for professional recording.
 
 ## Current boundaries
 
-Version 0.2 delivers the offline/browser core workflow, a piano-roll melody
-editor, deterministic melody sketches, synthesized backing/mix and MIDI/WAV
-export, with v1 project migration and complete composition history.
-Native Tauri packaging, desktop SQLite, real iPhone qualification, recording,
-recorded-audio timeline editing and automatic synchronization are pending.
-Native audio target confirmed by the user: Windows 11 and Focusrite Scarlett 4i4;
-the interface generation and installed driver remain to be confirmed.
-The audio engine is a browser synthesizer, not a recording or guitar amp engine.
+Version 0.3 adds browser Audio Studio (capture/import, nondestructive clips,
+waveforms, shared transport/mix and complete audio backups) and an actual Ollama
+HTTP assistant with optional cloud API. v1/v2 projects migrate to v3. No model
+weights are bundled; the user chose Ollama and has not installed it yet.
+Native Tauri/SQLite packaging, direct ASIO access, automatic latency compensation,
+actual Scarlett/Windows qualification and automatic synchronization are pending.
+User hardware target: Windows 11 and Focusrite Scarlett 4i4. Generation/driver/RAM
+are unknown. Automated audio capture uses a simulated input; AI HTTP contract
+checks use mocked responses. Real hardware and model inference are not claimed.
 Acceptance and verification details are in README.md and docs/ARCHITECTURE.md.
 
 ## Working location

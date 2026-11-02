@@ -83,7 +83,7 @@ with sync_playwright() as p:
     project_path=ARTIFACTS/'composition.gcs.json'
     project_download.value.save_as(project_path)
     data=json.loads(project_path.read_text())
-    assert data['schemaVersion']==2 and len(data['melody'])>16 and data['backing']['style']=='shuffle'
+    assert data['schemaVersion']==3 and len(data['melody'])>16 and data['backing']['style']=='shuffle'
     assert len(data['revisions'])==1 and data['revisions'][0]['arrangement']['melody']==[]
     page.screenshot(path=str(ARTIFACTS/'backing-desktop.png'),full_page=True)
     # Restore pre-generation state. All composition fields, including mix, must restore.
@@ -117,5 +117,5 @@ with sync_playwright() as p:
         assert not page.evaluate('document.documentElement.scrollWidth > innerWidth'),f'Backing overflow at {width}'
         page.get_by_role('button',name='Solo & Melody',exact=True).click()
     assert not errors,errors
-    print(json.dumps({'result':'passed','checks':['v1 IndexedDB migration','melody create/edit/move/delete','reload persistence','seeded generator and checkpoint','mute/solo','combined/melody-only transport and loop/one-shot completion','five-track MIDI download','nonzero stereo WAV render','v2 interchange','history restores composition','390/768 layouts'],'browser_errors':errors}))
+    print(json.dumps({'result':'passed','checks':['v1 IndexedDB migration','melody create/edit/move/delete','reload persistence','seeded generator and checkpoint','mute/solo','combined/melody-only transport and loop/one-shot completion','five-track MIDI download','nonzero stereo WAV render','v3 interchange','history restores composition','390/768 layouts'],'browser_errors':errors}))
     browser.close()

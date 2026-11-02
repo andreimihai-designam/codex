@@ -1,9 +1,10 @@
 # Guitar Composer Studio
 
-A local-first guitar harmony workspace. Version 0.2 includes a
+A local-first guitar harmony workspace. Version 0.3 includes a
 Romanian-language Harmony Studio, deterministic theory, an interactive fretboard,
 a piano-roll melody editor, synthesized backing tracks, a four-part mixer,
-MIDI/WAV export and a local project library. No account or API key is needed.
+MIDI/WAV export, browser audio recording/editing, an Ollama AI assistant and a
+local project library. No account or API key is needed.
 
 ## Open without installing Node.js
 
@@ -69,13 +70,52 @@ it on a trusted development network. Host only the built `dist` assets publicly.
   plus harmony, melody, bass and percussion. Overlapping same-pitch notes are
   merged within each melodic track to avoid premature MIDI note-off.
 - **Exportă WAV**: one pass of the mix, stereo 16-bit PCM / 44.1kHz, no metronome.
-  Limited to 3 minutes to bound browser memory. This is synthesized audio, not
-  recorded guitar. The master volume and mix settings affect the WAV.
+  Limited to 3 minutes to bound browser memory. The mix includes synthesized instruments and any recorded
+  Audio Studio clips. The master volume and mix settings affect the WAV.
 - Melody-only projects can play without any harmony chords. Imported v1 projects
-  receive an empty melody and disabled backing; v2 saves keep these additions in
-  project history. Import limit: 8MB, 512 melody notes, 128 chords, 30 snapshots.
-  v2 files are not readable by the old v0.1 application. Export a backup before
+  receive an empty melody and disabled backing; v3 adds an empty audio session
+  for both v1/v2 projects and preserves all composition state in history. Import limit: 8MB, 512 melody notes, 128 chords, 30 snapshots.
+  v3 files require the updated application; older app versions cannot read them. Export a backup before
   replacing the HTML file or browser data.
+
+## Audio Studio
+
+Import WAV/MP3/Ogg/WebM audio supported by your browser, or detect inputs and
+record from a Windows-exposed audio device. Microphone permission is requested
+only on your click. Choose input/channel and use direct monitoring on your
+Scarlett or explicitly opt into software monitoring with headphones.
+
+Select tracks/clips to edit start position, trim, gain, volume/pan/mute/solo,
+split at the cursor, duplicate or delete. Transport starts at the Audio Studio
+cursor, with recorded and synthesized parts on the same Web Audio clock. There
+is no automatic recording-latency compensation or time-stretching. Source limit:
+64MB / 3 minutes per file; up to 16 tracks and 128 clips; WAV mix limit 3 minutes.
+
+Export a **.gcsbundle** backup to include sources, history and conversation.
+The top Export button selects this format when needed. Import uses a new project
+identity, validates sizes and SHA-256, and restores the real source WAV bytes.
+Regular .gcs.json remains available for music-only projects. See
+[studio storage and capture details](docs/STUDIO_FORMAT.md).
+
+## Asistent AI — Ollama local
+
+1. Install [Ollama for Windows](https://ollama.com/download/windows).
+2. Quit the Ollama tray app if running. Open `portable/START-AI.cmd` and leave it
+   running. In another window open `portable/INSTALL-AI-MODEL.cmd` to download
+   `qwen2.5:3b` once. Manual PowerShell commands are in [AI setup](docs/AI_SETUP.md).
+3. Open **Asistent AI**, verify/list models, choose the installed model and send
+   a question. After the initial download, local inference needs no Internet.
+4. Review proposed changes before applying. The previous arrangement is saved
+   in History. Model proposals are structurally validated, not automatically trusted.
+
+The HTML does not include Ollama or model weights. The Windows helper scripts
+have not been executed in this Linux environment. A local server/model must be
+installed/running to obtain real responses. Without it, AI shows a connection
+error; it never fabricates a response. Local mode requires no key or subscription.
+Optional HTTPS OpenAI-compatible cloud APIs require the user's in-memory key and
+provider CORS support. A per-session request budget and output-token cap are
+provided; monetary billing depends on the provider. Audio bytes are never sent
+to AI. See [configuration, privacy and validation boundaries](docs/AI_SETUP.md).
 
 ## iPhone / offline
 
@@ -98,6 +138,9 @@ qualified; responsive layout checks in Chromium do not establish iOS compatibili
   editing/persistence, seeded sketches/history, mix controls, transport, MIDI
   downloads, nonzero stereo WAV rendering, restore and mobile layouts. Uses the
   production preview at port 4173 by default.
+- `python3 tests/browser_audio_ai.py`: fake-device capture, waveform/editing,
+  pan-correct mix, full backup/source restoration, corruption rejection and
+  explicitly mocked AI request/preview/budget/cancel/key-isolation flows.
 - `npm run build`: strict TypeScript checking and production build with PWA cache.
 - `python3 tests/browser_smoke.py`: Chromium functional checks against a running
   app at port 5173. Requires Python Playwright and Chromium. Set `CHROMIUM_PATH`
@@ -106,8 +149,11 @@ qualified; responsive layout checks in Chromium do not establish iOS compatibili
   scheduling, import/export, invalid-file handling, library deletion, restore and
   page overflow at 390/768/1024/1440px. Outputs are ignored under `artifacts/`.
 
-Audio scheduling checks verify oscillator events, not audible quality or hardware
-latency. No native recording, Windows driver or actual iPhone tests are claimed.
+Browser audio tests verify fake-device MediaRecorder capture, restored source
+bytes and a real nonzero/pan-correct stereo mix. They do not verify a real
+Scarlett interface or native driver/latency. AI HTTP tests are explicitly mocked;
+real model inference remains to be verified on the user PC. Actual iPhone and
+Windows helper execution are not claimed.
 
 ## Project documentation
 
@@ -115,7 +161,9 @@ latency. No native recording, Windows driver or actual iPhone tests are claimed.
 - [Decision log](DECISIONS.md)
 - [Architecture, limits and next milestones](docs/ARCHITECTURE.md)
 - [Windows 11 / Scarlett 4i4 audio milestone](docs/WINDOWS_AUDIO.md)
+- [Verification record and limits](docs/VERIFICATION.md)
 - [Central collaboration rules](AGENTS.md)
 
-Native multitrack recording, AI, SQLite/Tauri desktop integration and automatic
-sync are subsequent milestones, not working features in this version. The sidebar identifies later modules explicitly.
+Native ASIO/WASAPI integration, SQLite/Tauri desktop packaging and automatic
+sync remain later milestones. Browser recording/editing and a real Ollama/API
+client are implemented, with the validation limits above. The sidebar identifies later modules explicitly.

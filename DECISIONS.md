@@ -102,3 +102,32 @@ Use replacement callbacks when injecting the bundle/styles so their bytes remain
 literal. Add a regression test that parses every script in the shipped HTML and
 checks document structure and resource independence. Validate the actual rebuilt
 artifact in Chromium in addition to the normal web/PWA build.
+
+## 2026-11-02 — Audio Studio and AI implementation approved
+
+The user explicitly requested the remaining Audio Studio and AI stages, aiming
+for a fully usable app. Continue the portable/browser workflow; do not describe
+it as a native ASIO DAW or claim real hardware/model validation from cloud mocks.
+The user chose Ollama and confirmed it is not installed. Provide official setup,
+process-scoped Origin-null launch/model helper scripts and in-app diagnostics.
+
+Schema v3 adds audio metadata with explicit v1/v2 migration in current state and
+history. Separate IndexedDB stores retain WAV Blobs and conversations. Live and
+offline rendering share clip/synth plans, mute/solo and panning. Capture is explicit,
+monitoring defaults off, and recorder input/context resources are closed on stop,
+error and cancel. Stop invalidates asynchronous asset-loading playback requests.
+Position/trim remain manual because browser recording latency is not measured.
+
+A bounded GCSB backup includes current/history sources and chat, validates lengths,
+source references, WAV signatures and SHA-256 before storing under a new project
+namespace. Normal music-only JSON remains supported. No credentials enter exports.
+Ollama requests use bounded JSON/schema output and are checked by the deterministic
+core before preview/apply; optional cloud keys are in memory only, HTTPS-bound,
+with redirects disabled. No request is made automatically. Budgets are per-session
+request/output-token controls, not a fabricated monetary billing guarantee.
+
+Actual cloud model download was blocked by registry.ollama.ai HTTP 403 at the
+proxy. Do not bypass network policy or present mocked responses as inference.
+Windows/Scarlett capture/latency, Windows command helpers and the user's installed
+model remain external validation steps. The core browser/audio/backup pipeline
+is exercised with fake WebRTC input and actual decoded/rendered PCM.

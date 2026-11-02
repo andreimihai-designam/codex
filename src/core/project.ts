@@ -1,3 +1,4 @@
+import { emptyAudio, validateAudio, type AudioSession } from './studio';
 import { defaultBacking, CHANNELS, type MelodyNote, type BackingSettings } from './composition';
 import { buildChord, ROOTS, type ChordSpec, type Key } from './theory';
 export interface ProgressionChord extends ChordSpec {
@@ -12,6 +13,7 @@ export interface Arrangement {
   chords: ProgressionChord[];
   melody: MelodyNote[];
   backing: BackingSettings;
+  audio: AudioSession;
 }
 export interface Revision {
   id: string;
@@ -20,20 +22,21 @@ export interface Revision {
   arrangement: Arrangement;
 }
 export interface Project extends Arrangement {
-  schemaVersion: 2;
+  schemaVersion: 3;
   id: string;
   updatedAt: string;
   revisions: Revision[];
 }
 export function newProject(demo = true): Project {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     id: crypto.randomUUID(),
     name: demo ? 'Schiță de seară' : 'Proiect fără titlu',
     key: { root: 'C', mode: 'major' },
     bpm: 90,
     melody: [],
     backing: defaultBacking(),
+    audio: emptyAudio(),
     updatedAt: new Date().toISOString(),
     revisions: [],
     chords: (demo
@@ -54,7 +57,8 @@ export function newProject(demo = true): Project {
     })),
   };
 }
-function arrangement(value: unknown, legacy = false): Arrangement {
+function arrangement(value: unknown, version = 3): Arrangement {
+  const legacy = version === 1;
   if (!value || typeof value !== 'object') throw new Error('Proiect invalid.');
   const p = value as Record<string, unknown>;
   if (typeof p.name !== 'string' || !p.name.trim() || p.name.length > 100)
@@ -156,13 +160,14 @@ function arrangement(value: unknown, legacy = false): Arrangement {
     chords,
     melody,
     backing,
+    audio: version < 3 ? emptyAudio() : validateAudio(p.audio),
   };
 }
 export function validateProject(value: unknown): Project {
   if (!value || typeof value !== 'object') throw new Error('Fișier invalid.');
   const p = value as Omit<Project, 'schemaVersion'> & { schemaVersion: number };
-  if (p.schemaVersion !== 1 && p.schemaVersion !== 2)
-    throw new Error('Versiune de proiect incompatibilă. Sunt acceptate versiunile 1 și 2.');
+  if (![1, 2, 3].includes(p.schemaVersion))
+    throw new Error('Versiune de proiect incompatibilă. Sunt acceptate versiunile 1, 2 și 3.');
   if (
     typeof p.id !== 'string' ||
     !p.id ||
@@ -188,24 +193,24 @@ export function validateProject(value: unknown): Project {
       id: r.id,
       createdAt: r.createdAt,
       label: r.label,
-      arrangement: arrangement(r.arrangement, p.schemaVersion === 1),
+      arrangement: arrangement(r.arrangement, p.schemaVersion),
     };
   });
   return {
-    ...arrangement(p, p.schemaVersion === 1),
-    schemaVersion: 2,
+    ...arrangement(p, p.schemaVersion),
+    schemaVersion: 3,
     id: p.id,
     updatedAt: p.updatedAt,
     revisions,
   };
 }
 export function addRevision(project: Project): Project {
-  const { name, key, bpm, chords, melody, backing } = project;
+  const { name, key, bpm, chords, melody, backing, audio } = project;
   const revision: Revision = {
     id: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
     label: `Versiunea ${Number(project.revisions.at(-1)?.label.match(/(\d+)$/)?.[1] ?? 0) + 1}`,
-    arrangement: structuredClone({ name, key, bpm, chords, melody, backing }),
+    arrangement: structuredClone({ name, key, bpm, chords, melody, backing, audio }),
   };
   return { ...project, revisions: [...project.revisions, revision].slice(-30) };
 }

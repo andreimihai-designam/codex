@@ -1,3 +1,4 @@
+import { audioBeats } from './studio';
 import { buildChord, keyNotes, pc } from './theory';
 import type { Arrangement } from './project';
 
@@ -38,10 +39,13 @@ export function channelGain(settings: BackingSettings, channel: Channel): number
   const mix = settings.mix[channel];
   return mix.muted || (anySolo && !mix.solo) ? 0 : mix.volume;
 }
-export function arrangementBeats(p: Pick<Arrangement, 'chords' | 'melody'>): number {
+export function arrangementBeats(
+  p: Pick<Arrangement, 'chords' | 'melody' | 'audio' | 'bpm'>,
+): number {
   return Math.max(
     p.chords.reduce((n, c) => n + c.beats, 0),
     ...p.melody.map((n) => n.start + n.duration),
+    audioBeats(p.audio, p.bpm),
     0,
   );
 }
@@ -69,10 +73,12 @@ export interface MusicEvent {
 }
 export function compositionEvents(p: Arrangement): MusicEvent[] {
   const events: MusicEvent[] = [];
-  const gains = Object.fromEntries(CHANNELS.map((c) => [c, channelGain(p.backing, c)])) as Record<
-    Channel,
-    number
-  >;
+  const gains = Object.fromEntries(
+    CHANNELS.map((c) => [
+      c,
+      p.audio.tracks.some((t) => t.solo) && !p.backing.mix[c].solo ? 0 : channelGain(p.backing, c),
+    ]),
+  ) as Record<Channel, number>;
   const add = (e: MusicEvent) => {
     if (gains[e.channel] > 0) events.push({ ...e, velocity: e.velocity * gains[e.channel] });
   };

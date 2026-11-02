@@ -9,11 +9,13 @@
 
 ## Current delivered behavior
 
-v0.2 is an offline browser composer, with four synthesized parts, local mix
-controls and stereo WAV/MIDI export. The Scarlett can play the browser's audio
+v0.3 includes the offline composer plus browser input selection, MediaRecorder
+capture, nondestructive audio clips, waveforms, pan/mute/solo, audio/synth mix and
+portable source-inclusive backups. The Scarlett can play the browser's audio
 through the Windows-selected output device. The application does not open ASIO,
-record the guitar input, select an interface's native channels or claim low-
-latency monitoring. No actual Windows/Scarlett measurements were made in cloud.
+select ASIO/native channels or claim measured low-latency monitoring. Browser
+capture uses only the inputs/channels exposed by the Windows browser stack.
+No actual Windows/Scarlett measurements were made in cloud.
 
 ## Next native prototype
 
@@ -36,7 +38,7 @@ latency monitoring. No actual Windows/Scarlett measurements were made in cloud.
 Audio callbacks must not run React, Tauri IPC, disk writes, blocking locks or
 unbounded allocations. Use bounded buffers and worker threads; plan recording
 recovery and measured latency compensation. Store large audio files separately
-from SQLite metadata. Introduce migrations and import existing v1/v2 projects
+from SQLite metadata. Introduce migrations and import existing v1/v2/v3 projects
 before replacing the browser storage adapter.
 
 This milestone requires a Windows build runner and actual interface access.

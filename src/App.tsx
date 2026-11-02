@@ -67,6 +67,12 @@ import { arrangementBeats, type MelodyNote } from './core/composition';
 import { exportMidi } from './core/midi';
 import SoloComposer from './components/SoloComposer';
 import BackingStudio from './components/BackingStudio';
+import AudioStudio from './components/AudioStudio';
+import AiAssistant from './components/AiAssistant';
+import { validateAudio, type AudioSession } from './core/studio';
+import { applyAssistantReply, type AssistantReply } from './core/assistant';
+import { audioAssetIds, exportBundle, importBundle } from './services/projectBundle';
+import { loadChat } from './services/mediaStore';
 
 const audio = new AudioEngine();
 const formatDate = (s: string) =>
@@ -194,14 +200,24 @@ export default function App() {
   const [storageState, setStorageState] = useState<'saving' | 'saved' | 'error'>('saving');
   const [selectedId, setSelectedId] = useState<string>('');
   const [view, setView] = useState<'studio' | 'library'>('studio');
-  const [workspaceTab, setWorkspaceTab] = useState<'harmony' | 'solo' | 'backing'>('harmony');
+  const [workspaceTab, setWorkspaceTab] = useState<'harmony' | 'solo' | 'backing' | 'audio' | 'ai'>(
+    'harmony',
+  );
   const [exporting, setExporting] = useState(false);
+  const [mediaBusy, setMediaBusy] = useState(false);
+  const [audioCursor, setAudioCursor] = useState(0);
+  const cursorRef = useRef(0);
+  cursorRef.current = audioCursor;
   const workspaceTitle =
-    workspaceTab === 'solo'
-      ? 'Solo & Melody'
-      : workspaceTab === 'backing'
-        ? 'Backing & Export'
-        : 'Harmony Studio';
+    workspaceTab === 'audio'
+      ? 'Audio Studio'
+      : workspaceTab === 'ai'
+        ? 'Asistent AI'
+        : workspaceTab === 'solo'
+          ? 'Solo & Melody'
+          : workspaceTab === 'backing'
+            ? 'Backing & Export'
+            : 'Harmony Studio';
   const [projects, setProjects] = useState<Project[]>([]);
   const [modal, setModal] = useState<'add' | 'history' | 'help' | null>(null);
   const [root, setRoot] = useState('F');
@@ -248,7 +264,7 @@ export default function App() {
   const voicing = voicings[voicingIndex] ?? voicings[0];
   const totalBeats = arrangementBeats(project);
   const seconds = Math.round((totalBeats * 60) / project.bpm);
-  const changesDisabled = playing || !loaded || exporting;
+  const changesDisabled = playing || !loaded || exporting || mediaBusy;
 
   useEffect(() => {
     let cancelled = false;
@@ -292,6 +308,19 @@ export default function App() {
     };
   }, [project, loaded, view]);
   useEffect(() => {
+    setAudioCursor(0);
+  }, [project.id]);
+  useEffect(() => {
+    const guard = (e: BeforeUnloadEvent) => {
+      if (mediaBusy) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', guard);
+    return () => window.removeEventListener('beforeunload', guard);
+  }, [mediaBusy]);
+  useEffect(() => {
     setVoicingIndex(0);
   }, [selectedSymbol]);
   useEffect(() => {
@@ -326,11 +355,8 @@ export default function App() {
     setActiveIndex(-1);
     setActiveBeat(-1);
   }
-  async function togglePlayback() {
-    if (playing) {
-      stop();
-      return;
-    }
+  async function beginPlayback(at = 0, repeat = loop) {
+    stop();
     if (!totalBeats) return;
     const token = ++operation.current;
     try {
@@ -339,8 +365,9 @@ export default function App() {
       setPlaying(true);
       await audio.play(
         project,
-        loop,
-        (index, beat) => {
+        repeat,
+        (index, beat, absoluteBeat) => {
+          if (workspaceTab === 'audio') setAudioCursor(absoluteBeat);
           setActiveIndex(index);
           setActiveBeat(beat);
         },
@@ -349,11 +376,32 @@ export default function App() {
           setActiveIndex(-1);
           setActiveBeat(-1);
         },
+        at,
       );
     } catch (e) {
+      if (token !== operation.current) return;
       stop();
       setNotice(`Redarea nu a pornit: ${e instanceof Error ? e.message : 'audio indisponibil'}`);
     }
+  }
+  async function togglePlayback() {
+    if (playing) {
+      stop();
+      return;
+    }
+    await beginPlayback(workspaceTab === 'audio' ? audioCursor : 0);
+  }
+  function changeAudio(value: AudioSession, checkpoint = false) {
+    try {
+      const audio = validateAudio(value);
+      update((p) => ({ ...(checkpoint ? addRevision(p) : p), audio }));
+    } catch (e) {
+      setNotice(e instanceof Error ? e.message : 'Sesiune audio invalidă.');
+    }
+  }
+  function applyAi(reply: AssistantReply, parts: { chords: boolean; melody: boolean }) {
+    update((p) => ({ ...applyAssistantReply(addRevision(p), reply, parts) }));
+    setNotice('Propunerea AI a fost aplicată. Starea anterioară este în Istoric.');
   }
   async function preview(midi: number[]) {
     try {
@@ -426,27 +474,58 @@ export default function App() {
       setNotice('Versiunea este în memorie, dar salvarea locală a eșuat. Exportă proiectul.');
     }
   }
-  function exportProject() {
-    const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${project.name.replace(/[^\p{L}\p{N}_-]/gu, '-').slice(0, 80)}.gcs.json`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    setNotice('Proiect exportat în format .gcs.json.');
+  async function exportProject(forceBundle = false) {
+    if (mediaBusy || exporting) return;
+    setExporting(true);
+    try {
+      let chatAvailable = true;
+      const chat = await loadChat(project.id).catch(() => {
+        chatAvailable = false;
+        return [];
+      });
+      const bundled = forceBundle || audioAssetIds(project).length > 0 || chat.length > 0;
+      const blob = bundled
+        ? await exportBundle(project)
+        : new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob),
+        a = document.createElement('a');
+      a.href = url;
+      a.download = `${project.name.replace(/[^\p{L}\p{N}_-]/gu, '-').slice(0, 80)}.${bundled ? 'gcsbundle' : 'gcs.json'}`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setNotice(
+        bundled
+          ? 'Backup complet exportat, inclusiv audio și conversație.'
+          : chatAvailable
+            ? 'Proiect exportat în format .gcs.json.'
+            : 'Proiect exportat în JSON. Istoricul AI nu a putut fi citit din browser.',
+      );
+    } catch (e) {
+      setNotice(e instanceof Error ? e.message : 'Exportul proiectului a eșuat.');
+    } finally {
+      setExporting(false);
+    }
   }
   async function importFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
     try {
-      if (file.size > 8_000_000) throw new Error('Fișierul depășește limita de 8 MB.');
-      const imported = parseProject(await file.text());
       await persistCurrent();
+      const bundled = file.name.toLowerCase().endsWith('.gcsbundle');
+      if (!bundled && file.size > 8_000_000) throw new Error('Fișierul depășește limita de 8 MB.');
+      const imported = bundled ? await importBundle(file) : parseProject(await file.text());
+      if (!bundled && audioAssetIds(imported).length)
+        throw new Error(
+          'Acest JSON conține referințe audio fără fișiere. Importă backup-ul complet .gcsbundle.',
+        );
       // New identity preserves an existing project even when importing its older export.
       stop();
-      setProject({ ...imported, id: crypto.randomUUID(), updatedAt: new Date().toISOString() });
+      setProject({
+        ...imported,
+        id: bundled ? imported.id : crypto.randomUUID(),
+        updatedAt: new Date().toISOString(),
+      });
       setSelectedId('');
       setView('studio');
       setNotice('Proiect importat ca o copie nouă.');
@@ -471,7 +550,12 @@ export default function App() {
     setExporting(true);
     try {
       if (kind === 'midi') download(exportMidi(project), 'mid', 'audio/midi');
-      else download(await renderWav(project, volume / 100), 'wav', 'audio/wav');
+      else
+        download(
+          await renderWav(project, volume / 100, await audio.loadAssets(project)),
+          'wav',
+          'audio/wav',
+        );
       setNotice(
         kind === 'midi'
           ? 'Compoziție exportată ca MIDI multipistă.'
@@ -567,6 +651,7 @@ export default function App() {
           className="brand"
           onClick={(e) => {
             e.preventDefault();
+            if (mediaBusy) return;
             setView('studio');
             setWorkspaceTab('harmony');
           }}
@@ -586,6 +671,7 @@ export default function App() {
             className={
               view === 'studio' && workspaceTab === 'harmony' ? 'nav-item active' : 'nav-item'
             }
+            disabled={mediaBusy}
             onClick={() => {
               setView('studio');
               setWorkspaceTab('harmony');
@@ -595,6 +681,7 @@ export default function App() {
           </button>
           <button
             className="nav-item"
+            disabled={mediaBusy}
             onClick={() => {
               setView('studio');
               setWorkspaceTab('harmony');
@@ -612,7 +699,7 @@ export default function App() {
           <button
             className={view === 'library' ? 'nav-item active' : 'nav-item'}
             onClick={openLibrary}
-            disabled={!loaded}
+            disabled={!loaded || mediaBusy}
           >
             <Library size={19} /> Biblioteca mea
           </button>
@@ -620,6 +707,7 @@ export default function App() {
             className={
               view === 'studio' && workspaceTab === 'solo' ? 'nav-item active' : 'nav-item'
             }
+            disabled={mediaBusy}
             onClick={() => {
               setView('studio');
               setWorkspaceTab('solo');
@@ -631,6 +719,7 @@ export default function App() {
             className={
               view === 'studio' && workspaceTab === 'backing' ? 'nav-item active' : 'nav-item'
             }
+            disabled={mediaBusy}
             onClick={() => {
               setView('studio');
               setWorkspaceTab('backing');
@@ -638,14 +727,31 @@ export default function App() {
           >
             <Waves size={19} /> Backing & Export
           </button>
+          <button
+            className={
+              view === 'studio' && workspaceTab === 'audio' ? 'nav-item active' : 'nav-item'
+            }
+            disabled={mediaBusy}
+            onClick={() => {
+              setView('studio');
+              setWorkspaceTab('audio');
+            }}
+          >
+            <Mic2 size={19} />
+            Audio Studio
+          </button>
+          <button
+            className={view === 'studio' && workspaceTab === 'ai' ? 'nav-item active' : 'nav-item'}
+            disabled={mediaBusy}
+            onClick={() => {
+              setView('studio');
+              setWorkspaceTab('ai');
+            }}
+          >
+            <Sparkles size={19} />
+            Asistent AI
+          </button>
         </nav>
-        <div className="workspace-label upcoming-label">ÎN ETAPELE URMĂTOARE</div>
-        <div className="nav-item unavailable">
-          <Mic2 size={19} /> Audio Studio <span>curând</span>
-        </div>
-        <div className="nav-item unavailable">
-          <Sparkles size={19} /> Asistent AI <span>curând</span>
-        </div>
         <div className="sidebar-bottom">
           <div className="offline-card">
             <div>
@@ -657,7 +763,7 @@ export default function App() {
             <CircleHelp size={18} /> Ghidul studioului <span>↗</span>
           </button>
           <div className="sidebar-version">
-            GUITAR COMPOSER STUDIO <span>v0.2</span>
+            GUITAR COMPOSER STUDIO <span>v0.3</span>
           </div>
         </div>
       </aside>
@@ -700,15 +806,19 @@ export default function App() {
               </h1>
               <p>
                 {view === 'studio'
-                  ? workspaceTab === 'solo'
-                    ? 'Transformă armonia într-o melodie. Compune, ascultă și rafinează.'
-                    : workspaceTab === 'backing'
-                      ? 'Adaugă ritm și bas. Echilibrează mixul și exportă ideea completă.'
-                      : 'Explorează acorduri. Găsește conexiuni. Dă formă următoarei idei.'
+                  ? workspaceTab === 'audio'
+                    ? 'Înregistrează chitara și construiește un aranjament audio local.'
+                    : workspaceTab === 'ai'
+                      ? 'Explorează idei cu un model local. Tu alegi ce intră în proiect.'
+                      : workspaceTab === 'solo'
+                        ? 'Transformă armonia într-o melodie. Compune, ascultă și rafinează.'
+                        : workspaceTab === 'backing'
+                          ? 'Adaugă ritm și bas. Echilibrează mixul și exportă ideea completă.'
+                          : 'Explorează acorduri. Găsește conexiuni. Dă formă următoarei idei.'
                   : 'Un loc pentru fiecare idee, de la prima schiță la ultima versiune.'}
               </p>
             </div>
-            <button className="button dark" onClick={createProject} disabled={!loaded}>
+            <button className="button dark" onClick={createProject} disabled={!loaded || mediaBusy}>
               <Plus size={17} /> Proiect nou
             </button>
           </div>
@@ -757,7 +867,11 @@ export default function App() {
                           )
                             return;
                           try {
-                            await deleteProject(p.id);
+                            const cleaned = await deleteProject(p.id);
+                            if (!cleaned)
+                              setNotice(
+                                'Proiect șters. Unele surse media nu au putut fi curățate din browser.',
+                              );
                             setProjects(await listProjects());
                             if (p.id === project.id) setProject(newProject(false));
                           } catch {
@@ -809,7 +923,11 @@ export default function App() {
                     <Save size={16} />
                     <span>Salvează versiune</span>
                   </button>
-                  <button className="text-button" onClick={exportProject}>
+                  <button
+                    className="text-button"
+                    disabled={mediaBusy || exporting}
+                    onClick={() => void exportProject()}
+                  >
                     <Download size={16} />
                     <span>Exportă</span>
                   </button>
@@ -827,6 +945,7 @@ export default function App() {
                   className={workspaceTab === 'harmony' ? 'current' : ''}
                   aria-pressed={workspaceTab === 'harmony'}
                   onClick={() => setWorkspaceTab('harmony')}
+                  disabled={mediaBusy}
                 >
                   <Layers3 size={16} />
                   Harmony
@@ -835,6 +954,7 @@ export default function App() {
                   className={workspaceTab === 'solo' ? 'current' : ''}
                   aria-pressed={workspaceTab === 'solo'}
                   onClick={() => setWorkspaceTab('solo')}
+                  disabled={mediaBusy}
                 >
                   <Music2 size={16} />
                   Melodie
@@ -843,9 +963,28 @@ export default function App() {
                   className={workspaceTab === 'backing' ? 'current' : ''}
                   aria-pressed={workspaceTab === 'backing'}
                   onClick={() => setWorkspaceTab('backing')}
+                  disabled={mediaBusy}
                 >
                   <Waves size={16} />
                   Backing & export
+                </button>
+                <button
+                  className={workspaceTab === 'audio' ? 'current' : ''}
+                  aria-pressed={workspaceTab === 'audio'}
+                  disabled={mediaBusy}
+                  onClick={() => setWorkspaceTab('audio')}
+                >
+                  <Mic2 size={16} />
+                  Audio
+                </button>
+                <button
+                  className={workspaceTab === 'ai' ? 'current' : ''}
+                  aria-pressed={workspaceTab === 'ai'}
+                  disabled={mediaBusy}
+                  onClick={() => setWorkspaceTab('ai')}
+                >
+                  <Sparkles size={16} />
+                  AI
                 </button>
               </div>
               {workspaceTab === 'harmony' ? (
@@ -1357,7 +1496,31 @@ export default function App() {
                   <section className="panel shared-transport" aria-label="Transport compoziție">
                     {transport}
                   </section>
-                  {workspaceTab === 'solo' ? (
+                  {workspaceTab === 'audio' ? (
+                    <AudioStudio
+                      key={project.id}
+                      project={project}
+                      disabled={playing || !loaded || exporting}
+                      playing={playing}
+                      cursor={audioCursor}
+                      onCursor={setAudioCursor}
+                      onChange={changeAudio}
+                      onBusy={setMediaBusy}
+                      onError={setNotice}
+                      onRecordStart={() => beginPlayback(cursorRef.current, false)}
+                      onRecordStop={stop}
+                      onExport={() => void exportProject(true)}
+                      onWav={() => void exportAudio('wav')}
+                    />
+                  ) : workspaceTab === 'ai' ? (
+                    <AiAssistant
+                      key={project.id}
+                      project={project}
+                      disabled={changesDisabled}
+                      onApply={applyAi}
+                      onError={setNotice}
+                    />
+                  ) : workspaceTab === 'solo' ? (
                     <SoloComposer
                       key={project.id}
                       project={project}
@@ -1379,7 +1542,8 @@ export default function App() {
               )}
               <footer className="workspace-footer">
                 <span>
-                  <span className="status-dot" /> Teorie deterministă · Date locale · Fără cloud
+                  <span className="status-dot" /> Teorie deterministă · Proiecte locale · AI
+                  opțional
                 </span>
                 <span>Creat pentru momentele în care vrei să compui.</span>
               </footer>
@@ -1391,7 +1555,7 @@ export default function App() {
         type="file"
         ref={fileInput}
         hidden
-        accept=".json,.gcs.json,application/json"
+        accept=".json,.gcs.json,.gcsbundle,application/json,application/octet-stream"
         onChange={importFile}
       />
       {notice && (
@@ -1497,6 +1661,33 @@ export default function App() {
               Nu ai salvat încă o versiune. Folosește „Salvează versiune”.
             </p>
           )}
+          {project.revisions.length > 0 && (
+            <button
+              className="button"
+              disabled={changesDisabled}
+              onClick={() => {
+                if (
+                  !window.confirm(
+                    'Ștergi toate versiunile din istoricul acestui proiect? Starea curentă rămâne; revenirea la versiunile vechi nu va mai fi posibilă.',
+                  )
+                )
+                  return;
+                update((p) => {
+                  const used = new Set(
+                    p.audio.tracks.flatMap((t) => t.clips.map((c) => c.assetId)),
+                  );
+                  return {
+                    ...p,
+                    revisions: [],
+                    audio: { ...p.audio, assets: p.audio.assets.filter((a) => used.has(a.id)) },
+                  };
+                });
+              }}
+            >
+              <Trash2 size={14} />
+              Golește istoricul
+            </button>
+          )}
           {[...project.revisions].reverse().map((r) => (
             <div className="history-item" key={r.id}>
               <div>
@@ -1542,15 +1733,18 @@ export default function App() {
             </p>
             <h3>Proiectele îți aparțin</h3>
             <p>
-              Salvare automată în IndexedDB, în acest browser. Exportă periodic fișiere .gcs.json:
-              ștergerea datelor browserului poate elimina proiectele. Importul creează o copie nouă.
-              Poți transfera manual aceste fișiere pe iPhone.
+              Salvare automată în IndexedDB, în acest browser. Exportă periodic proiectul; când
+              conține audio sau conversații se folosește .gcsbundle, cu sursele incluse: ștergerea
+              datelor browserului poate elimina proiectele. Importul creează o copie nouă. Poți
+              transfera manual aceste fișiere pe iPhone.
             </p>
             <h3>Disponibil acum</h3>
             <p>
               Armonie, fretboard, editor melodic, acompaniament sintetizat, mixaj și export
-              MIDI/WAV. Audio multitrack, AI și pachetul Windows nativ sunt etape viitoare.
-              Înregistrarea chitarei nu este inclusă în această versiune.
+              MIDI/WAV. Audio Studio oferă captură prin browser, clipuri și backup cu sursele
+              incluse. Asistentul AI folosește Ollama local sau un API cloud opțional, cu propuneri
+              validate înainte de aplicare. Accesul ASIO direct și pachetul Windows nativ necesită
+              etapa desktop.
             </p>
             <h3>Offline pe iPhone</h3>
             <p>

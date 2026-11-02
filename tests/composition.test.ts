@@ -82,7 +82,7 @@ describe('versioned composition data', () => {
     delete revisions[0].arrangement.melody;
     delete revisions[0].arrangement.backing;
     const restored = parseProject(JSON.stringify(legacy));
-    expect(restored.schemaVersion).toBe(2);
+    expect(restored.schemaVersion).toBe(3);
     expect(restored.chords).toEqual(p.chords);
     expect(restored.melody).toEqual([]);
     expect(restored.backing.enabled).toBe(false);

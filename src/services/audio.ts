@@ -4,7 +4,9 @@ import {
   compositionEvents,
   type MusicEvent,
 } from '../core/composition';
-import type { Arrangement } from '../core/project';
+import type { Arrangement, Project } from '../core/project';
+import { trackGain } from '../core/studio';
+import { getAsset } from './mediaStore';
 
 type Source = AudioScheduledSourceNode;
 const noiseBuffers = new WeakMap<BaseAudioContext, AudioBuffer>();
@@ -93,6 +95,67 @@ function scheduleEvent(
     source.stop(begin + duration + 0.01);
   });
 }
+
+export interface ClipEvent {
+  beat: number;
+  offset: number;
+  duration: number;
+  assetId: string;
+  gain: number;
+  pan: number;
+}
+export function clipEvents(p: Arrangement, startBeat = 0): ClipEvent[] {
+  const syntheticSolo = Object.entries(p.backing.mix).some(
+    ([c, m]) => m.solo && (p.backing.enabled || c === 'harmony' || c === 'melody'),
+  );
+  const result: ClipEvent[] = [];
+  for (const track of p.audio.tracks) {
+    const gain = trackGain(p.audio, track, syntheticSolo);
+    if (!gain) continue;
+    for (const clip of track.clips) {
+      const lost = Math.max(0, ((startBeat - clip.start) * 60) / p.bpm);
+      const duration = clip.trimEnd - clip.trimStart - lost;
+      if (duration > 0.00001)
+        result.push({
+          beat: Math.max(startBeat, clip.start) - startBeat,
+          offset: clip.trimStart + lost,
+          duration,
+          assetId: clip.assetId,
+          gain: gain * clip.gain,
+          pan: track.pan,
+        });
+    }
+  }
+  return result.sort((a, b) => a.beat - b.beat);
+}
+function scheduleClip(
+  ctx: BaseAudioContext,
+  destination: AudioNode,
+  event: ClipEvent,
+  at: number,
+  buffers: Map<string, AudioBuffer>,
+  sources?: Set<Source>,
+) {
+  const buffer = buffers.get(event.assetId);
+  if (!buffer) throw new Error('Sursă audio nedecodată.');
+  const source = ctx.createBufferSource(),
+    gain = ctx.createGain(),
+    pan = ctx.createStereoPanner();
+  source.buffer = buffer;
+  gain.gain.value = event.gain;
+  pan.pan.value = event.pan;
+  source.connect(gain);
+  gain.connect(pan);
+  pan.connect(destination);
+  sources?.add(source);
+  source.onended = () => {
+    source.disconnect();
+    gain.disconnect();
+    pan.disconnect();
+    sources?.delete(source);
+  };
+  source.start(at, event.offset, Math.min(event.duration, buffer.duration - event.offset));
+}
 function mixBus(ctx: BaseAudioContext, volume: number) {
   const gain = ctx.createGain();
   gain.gain.value = volume;
@@ -112,6 +175,7 @@ export class AudioEngine {
   private volume = 0.6;
   private click = false;
   private stopCallback?: () => void;
+  private generation = 0;
   async unlock() {
     if (!this.context) {
       this.context = new AudioContext();
@@ -142,6 +206,7 @@ export class AudioEngine {
     );
   }
   stop() {
+    this.generation++;
     if (this.timer) clearInterval(this.timer);
     this.timer = undefined;
     for (const node of this.nodes) {
@@ -156,19 +221,61 @@ export class AudioEngine {
     this.stopCallback = undefined;
     callback?.();
   }
+  private cache = new Map<string, AudioBuffer>();
+  async loadAssets(project: Project): Promise<Map<string, AudioBuffer>> {
+    const ctx = await this.unlock();
+    const result = new Map<string, AudioBuffer>();
+    let bytes = 0;
+    for (const id of new Set(project.audio.tracks.flatMap((t) => t.clips.map((c) => c.assetId)))) {
+      const key = project.id + ':' + id;
+      let buffer = this.cache.get(key);
+      if (!buffer) {
+        const blob = await getAsset(project.id, id);
+        bytes += blob.size;
+        if (bytes > 256_000_000) throw new Error('Sesiunea audio depășește 256 MB.');
+        buffer = await ctx.decodeAudioData(await blob.arrayBuffer());
+        const meta = project.audio.assets.find((a) => a.id === id);
+        if (!meta || Math.abs(meta.duration - buffer.duration) > 0.05)
+          throw new Error('Durata sursei audio nu corespunde proiectului.');
+        this.cache.set(key, buffer);
+      }
+      result.set(id, buffer);
+    }
+    let cached = 0;
+    for (const [key, buffer] of [...this.cache].reverse()) {
+      cached += buffer.length * buffer.numberOfChannels * 4;
+      if (cached > 128_000_000) this.cache.delete(key);
+    }
+    return result;
+  }
   async play(
-    arrangement: Arrangement,
+    arrangement: Project,
     loop: boolean,
-    onPosition: (index: number, beat: number) => void,
+    onPosition: (index: number, beat: number, absoluteBeat: number) => void,
     onStop: () => void,
+    startBeat = 0,
   ) {
     this.stop();
+    const generation = this.generation;
     const beats = arrangementBeats(arrangement);
     if (!beats) return;
     const ctx = await this.unlock();
+    const buffers = await this.loadAssets(arrangement);
+    if (generation !== this.generation) return;
+    startBeat = Math.max(0, Math.min(startBeat, Math.max(0, beats - 0.001)));
     const secondsPerBeat = 60 / arrangement.bpm;
-    const cycleDuration = beats * secondsPerBeat;
-    const events = compositionEvents(arrangement);
+    const cycleBeats = beats - startBeat;
+    const cycleDuration = cycleBeats * secondsPerBeat;
+    const events = compositionEvents(arrangement)
+      .filter((e) => e.beat + e.duration > startBeat)
+      .map((e) => ({
+        ...e,
+        beat: Math.max(startBeat, e.beat) - startBeat,
+        duration: e.duration - Math.max(0, startBeat - e.beat),
+      }));
+    const clips = clipEvents(arrangement, startBeat);
+    let clipCycle = 0,
+      clipIndex = 0;
     const timeline = chordTimeline(arrangement);
     let cycle = 0,
       eventIndex = 0,
@@ -176,6 +283,7 @@ export class AudioEngine {
     const start = ctx.currentTime + 0.08;
     let lastTick = ctx.currentTime;
     let previousPosition = '';
+    let lastUi = 0;
     this.stopCallback = onStop;
     const tick = () => {
       const now = ctx.currentTime;
@@ -190,14 +298,17 @@ export class AudioEngine {
         return;
       }
       if (elapsed >= 0) {
-        const beat = loop
-          ? (elapsed / secondsPerBeat) % beats
-          : Math.min(beats - 0.0001, elapsed / secondsPerBeat);
+        const beat =
+          startBeat +
+          (loop
+            ? (elapsed / secondsPerBeat) % cycleBeats
+            : Math.min(cycleBeats - 0.0001, elapsed / secondsPerBeat));
         const item = timeline.find((c) => beat >= c.start && beat < c.end);
         const position = `${item?.index ?? -1}:${Math.floor(beat)}`;
-        if (position !== previousPosition) {
+        if (position !== previousPosition || now - lastUi >= 0.1) {
+          lastUi = now;
           previousPosition = position;
-          onPosition(item?.index ?? -1, Math.floor(beat) % 4);
+          onPosition(item?.index ?? -1, Math.floor(beat) % 4, beat);
         }
       }
       const horizon = now + 0.15;
@@ -219,7 +330,18 @@ export class AudioEngine {
           cycle++;
         }
       }
-      while (start + nextClick * secondsPerBeat < horizon && (loop || nextClick < beats)) {
+      while (clips.length) {
+        const clip = clips[clipIndex];
+        const time = start + clipCycle * cycleDuration + clip.beat * secondsPerBeat;
+        if (time >= horizon || (!loop && clipCycle > 0)) break;
+        scheduleClip(ctx, this.master!, clip, Math.max(now + 0.002, time), buffers, this.nodes);
+        clipIndex++;
+        if (clipIndex === clips.length) {
+          clipIndex = 0;
+          clipCycle++;
+        }
+      }
+      while (start + nextClick * secondsPerBeat < horizon && (loop || nextClick < cycleBeats)) {
         if (this.click)
           scheduleEvent(
             ctx,
@@ -247,6 +369,7 @@ export class AudioEngine {
 export async function renderWav(
   arrangement: Arrangement,
   volume = 0.6,
+  buffers = new Map<string, AudioBuffer>(),
 ): Promise<Uint8Array<ArrayBuffer>> {
   const duration = (arrangementBeats(arrangement) * 60) / arrangement.bpm;
   if (!duration) throw new Error('Adaugă acorduri sau note înainte de export.');
@@ -264,6 +387,8 @@ export async function renderWav(
       0.02 + (event.beat * 60) / arrangement.bpm,
       60 / arrangement.bpm,
     );
+  for (const clip of clipEvents(arrangement))
+    scheduleClip(ctx, master, clip, 0.02 + (clip.beat * 60) / arrangement.bpm, buffers);
   const buffer = await ctx.startRendering();
   return encodeWav([buffer.getChannelData(0), buffer.getChannelData(1)], buffer.sampleRate);
 }

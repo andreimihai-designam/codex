@@ -2820,3 +2820,586 @@ dialog::backdrop {
     font-size: 10px;
   }
 }
+/* Audio capture, timeline and assistant. */
+textarea {
+  font: inherit;
+  border: 1px solid #dbe5ce;
+  border-radius: 7px;
+  padding: 12px;
+  background: #fbfdf7;
+  color: #31472a;
+  resize: vertical;
+}
+textarea:focus-visible {
+  outline: 3px solid #81b25c;
+  outline-offset: 2px;
+}
+.audio-layout,
+.assistant-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 290px;
+  gap: 22px;
+  align-items: start;
+}
+.audio-main,
+.assistant-chat {
+  min-width: 0;
+}
+.audio-actions {
+  display: flex;
+  gap: 7px;
+}
+.capture-panel {
+  padding: 18px 20px;
+  background: #f7faf1;
+  border-top: 1px solid #e4eadb;
+  border-bottom: 1px solid #e4eadb;
+}
+.capture-fields,
+.record-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 13px;
+}
+.capture-fields {
+  margin-bottom: 18px;
+}
+.capture-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 10px;
+}
+.capture-fields select {
+  font-size: 11px;
+  max-width: 250px;
+}
+.record-button {
+  border: 1px solid #d9b5ac;
+  background: #fbf0ed;
+  color: #854538;
+  border-radius: 7px;
+  padding: 11px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.record-button.active {
+  background: #a24d3c;
+  color: white;
+  border-color: #a24d3c;
+}
+.record-dot {
+  height: 10px;
+  width: 10px;
+  border-radius: 50%;
+  background: #bc6351;
+}
+.record-time {
+  font-family: ui-monospace, monospace;
+  font-size: 15px;
+  color: #6e7d5e;
+}
+.capture-note {
+  font-size: 10px;
+  line-height: 1.8;
+  color: #6f7b63;
+  margin-top: 16px;
+}
+.timeline-tools {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 10px;
+  color: #6b7b5b;
+}
+.timeline-tools label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+}
+.timeline-tools input {
+  width: 90px;
+  font-size: 11px !important;
+}
+.timeline-tools select {
+  font-size: 11px;
+}
+.timeline-tools > span {
+  margin-left: auto;
+}
+.audio-timeline {
+  overflow: auto;
+  max-height: 650px;
+  border-top: 1px solid #dfe6d6;
+  border-bottom: 1px solid #dfe6d6;
+  background: #f9fbf5;
+}
+.audio-timeline-inner {
+  min-width: 780px;
+}
+.audio-ruler {
+  display: flex;
+  height: 35px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #253b2b;
+  color: #d0dfba;
+}
+.audio-ruler > span {
+  position: sticky;
+  left: 0;
+  z-index: 7;
+  background: #253b2b;
+  width: 180px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  font-size: 9px;
+  letter-spacing: 1px;
+}
+.audio-ruler > div {
+  position: relative;
+}
+.audio-ruler button {
+  position: absolute;
+  top: 0;
+  height: 35px;
+  border: 0;
+  border-left: 1px solid #78936455;
+  background: transparent;
+  color: #b8cda1;
+  font-size: 10px;
+  padding: 0 7px;
+}
+.audio-track-row {
+  display: flex;
+  height: 95px;
+  border-top: 1px solid #dbe4cd;
+}
+.audio-track-row.track-selected {
+  background: #f0f6e5;
+}
+.audio-track-label {
+  width: 180px;
+  flex-shrink: 0;
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  border: 0;
+  border-right: 1px solid #cbd9b6;
+  background: #f1f6e8;
+  text-align: left;
+  padding: 16px;
+}
+.audio-track-label strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 550;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.audio-track-label > span {
+  display: block;
+  font-size: 9px;
+  color: #778868;
+  margin-top: 9px;
+}
+.track-selected .audio-track-label {
+  background: #e3eecd;
+}
+.audio-track-lane {
+  position: relative;
+  background-image:
+    linear-gradient(to right, #c4d3ae77 1px, transparent 1px),
+    linear-gradient(to right, #dde6d166 1px, transparent 1px);
+}
+.audio-clip {
+  position: absolute;
+  top: 12px;
+  height: 70px;
+  padding: 6px 0 0;
+  background: #b9d88b;
+  color: #355128;
+  border: 1px solid #8faf64;
+  border-radius: 5px;
+  overflow: hidden;
+  text-align: left;
+}
+.audio-clip.clip-selected {
+  outline: 2px solid #446a2d;
+  outline-offset: 2px;
+  background: #c9e5a1;
+}
+.audio-clip > span {
+  font-size: 9px;
+  display: block;
+  padding: 0 7px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.audio-clip svg {
+  width: 100%;
+  height: 42px;
+  display: block;
+  margin-top: 3px;
+  fill: #648346aa;
+}
+.audio-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #a4513c;
+  pointer-events: none;
+  z-index: 2;
+}
+.audio-empty {
+  padding: 45px 22px;
+  color: #74875f;
+  font-size: 12px;
+}
+.audio-main > .mixer-help {
+  padding-top: 18px;
+}
+.assistant-chat {
+  overflow: hidden;
+}
+.chat-messages {
+  height: 430px;
+  overflow: auto;
+  padding: 0 22px 20px;
+  scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.chat-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 25px 5px;
+  gap: 15px;
+  color: #6c805c;
+}
+.chat-empty > svg {
+  color: #8caa67;
+}
+.chat-empty h3 {
+  font-size: 20px;
+  font-weight: 550;
+  letter-spacing: -0.6px;
+}
+.chat-empty p {
+  font-size: 12px;
+  line-height: 1.8;
+  max-width: 520px;
+}
+.chat-empty > button {
+  background: #f6faef;
+  border: 1px solid #dce8cb;
+  border-radius: 7px;
+  padding: 11px 13px;
+  color: #597244;
+  font-size: 11px;
+  text-align: left;
+}
+.chat-empty > button:hover {
+  background: #eaf3dd;
+}
+.chat-message {
+  border: 1px solid #e4eadb;
+  border-radius: 9px;
+  padding: 16px 18px;
+  max-width: 95%;
+}
+.chat-message.user {
+  align-self: flex-end;
+  background: #edf4e3;
+  border-color: #d9e6c7;
+}
+.chat-message.assistant {
+  align-self: flex-start;
+  background: #fbfcf8;
+}
+.chat-message > span {
+  font-size: 8px;
+  letter-spacing: 1.5px;
+  color: #71865e;
+}
+.chat-message > p {
+  font-size: 12px;
+  line-height: 1.9;
+  color: #465e38;
+  margin-top: 9px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.chat-working {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  font-size: 11px;
+  color: #7c8b6d;
+  padding: 10px 0;
+}
+.chat-input {
+  padding: 19px 22px;
+  border-top: 1px solid #e1e9d6;
+  background: #f8fbf2;
+}
+.chat-input > label {
+  display: block;
+  font-size: 10px;
+  margin-bottom: 9px;
+}
+.chat-input > textarea {
+  width: 100%;
+  font-size: 12px;
+  line-height: 1.7;
+  min-height: 90px;
+}
+.chat-input > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 13px;
+}
+.chat-input > div > span {
+  font-size: 9px;
+  color: #70835e;
+}
+.ai-error {
+  margin: 0 22px 18px;
+  padding: 13px 15px;
+  background: #fbefdf;
+  border: 1px solid #e9d2b0;
+  border-radius: 7px;
+  color: #865e32;
+  font-size: 11px;
+  line-height: 1.8;
+}
+.proposal-preview {
+  margin: 0 22px 22px;
+  padding: 18px;
+  background: #f1f7e7;
+  border: 1px solid #d3e4bb;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+.proposal-preview h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #4b6837;
+}
+.proposal-preview p,
+.proposal-preview small {
+  font-size: 10px;
+  line-height: 1.8;
+  color: #6e825b;
+}
+.proposal-preview label {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #496537;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  overflow-wrap: anywhere;
+}
+.proposal-preview input {
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+.proposal-preview .button {
+  align-self: flex-start;
+}
+.assistant-layout pre {
+  font-size: 10px;
+  line-height: 1.9;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: #f1f6e8;
+  border: 1px solid #e1ead5;
+  border-radius: 6px;
+  padding: 12px;
+  color: #4e6b38;
+}
+.assistant-layout .note-properties p {
+  font-size: 11px;
+}
+.workspace-tabs {
+  flex-wrap: wrap;
+}
+@media (max-width: 1200px) {
+  .audio-layout,
+  .assistant-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .audio-layout > .composer-side,
+  .assistant-layout > .composer-side {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+  .audio-actions .button {
+    font-size: 10px;
+  }
+  .chat-messages {
+    height: 450px;
+  }
+}
+@media (max-width: 760px) {
+  .sidebar {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .sidebar nav {
+    flex: 1;
+    justify-content: flex-end;
+    min-width: 0;
+  }
+  .sidebar nav .nav-item {
+    padding: 8px;
+  }
+  .audio-layout,
+  .assistant-layout {
+    gap: 17px;
+  }
+  .audio-main > .panel-header {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .capture-panel {
+    padding: 17px 16px;
+  }
+  .capture-fields select {
+    font-size: 10px;
+    max-width: 210px;
+  }
+  .record-controls {
+    gap: 12px;
+  }
+  .record-button {
+    font-size: 11px;
+    padding: 10px 11px;
+  }
+  .capture-note {
+    font-size: 9px;
+  }
+  .timeline-tools {
+    padding: 15px 16px;
+    gap: 12px;
+  }
+  .timeline-tools > span {
+    margin-left: 0;
+  }
+  .audio-layout > .composer-side,
+  .assistant-layout > .composer-side {
+    gap: 17px;
+  }
+  .chat-messages {
+    padding: 0 16px 17px;
+    height: 380px;
+  }
+  .chat-input {
+    padding: 17px 16px;
+  }
+  .chat-input > div {
+    flex-wrap: wrap;
+  }
+  .chat-message {
+    padding: 14px;
+    max-width: 100%;
+  }
+  .chat-message > p {
+    font-size: 11px;
+  }
+  .ai-error {
+    margin: 0 16px 16px;
+  }
+  .proposal-preview {
+    margin: 0 16px 17px;
+    padding: 15px;
+  }
+  .workspace-tabs button {
+    flex: 1;
+    padding: 9px 6px;
+    font-size: 10px;
+  }
+  .workspace-tabs button svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+@media (max-width: 430px) {
+  .sidebar .brand {
+    width: 100%;
+    justify-content: center;
+  }
+  .sidebar .brand small {
+    display: block;
+  }
+  .sidebar nav {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .sidebar nav .nav-item {
+    padding: 8px 12px;
+  }
+  .audio-layout > .composer-side,
+  .assistant-layout > .composer-side {
+    grid-template-columns: 1fr;
+  }
+  .record-time {
+    font-size: 13px;
+  }
+  .capture-fields {
+    gap: 12px;
+  }
+  .capture-fields label {
+    width: 100%;
+  }
+  .capture-fields select {
+    width: 100%;
+    max-width: 100%;
+  }
+  .record-controls .switch-label {
+    font-size: 10px;
+  }
+  .audio-actions {
+    flex-wrap: wrap;
+  }
+  .timeline-tools input {
+    width: 70px;
+  }
+  .chat-input > div > span {
+    font-size: 8px;
+  }
+  .chat-input .button {
+    font-size: 10px;
+  }
+  .workspace-tabs button {
+    flex: 1 1 28%;
+    padding: 9px 5px;
+  }
+  .assistant-chat .panel-header h2 {
+    font-size: 11px;
+  }
+}
+.sidebar {
+  overflow-y: auto;
+}

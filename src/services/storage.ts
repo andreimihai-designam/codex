@@ -1,3 +1,4 @@
+import { deleteMedia } from './mediaStore';
 import { validateProject, type Project } from '../core/project';
 const DB_NAME = 'guitar-composer-studio';
 function open(): Promise<IDBDatabase> {
@@ -37,4 +38,7 @@ export async function listProjects(): Promise<Project[]> {
 }
 export async function deleteProject(id: string) {
   await transaction('readwrite', (s) => s.delete(id));
+  return deleteMedia(id)
+    .then(() => true)
+    .catch(() => false);
 }
