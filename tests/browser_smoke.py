@@ -77,7 +77,7 @@ with sync_playwright() as p:
     assert len(data['chords']) == 5 and len(data['revisions']) == 1
     # Invalid imports leave the current project intact.
     page.locator('input[type=file]').set_input_files({'name': 'bad.json', 'mimeType': 'application/json', 'buffer': b'{"schemaVersion":99}'})
-    expect(page.get_by_text('Versiune de proiect incompatibilă. Este acceptată versiunea 1.', exact=True)).to_be_visible()
+    expect(page.get_by_text('Versiune de proiect incompatibilă. Sunt acceptate versiunile 1 și 2.', exact=True)).to_be_visible()
     expect(page.locator('.chord-card')).to_have_count(5)
     page.locator('input[type=file]').set_input_files(str(exported))
     expect(page.get_by_text('Proiect importat ca o copie nouă.', exact=True)).to_be_visible()

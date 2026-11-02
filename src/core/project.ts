@@ -1,3 +1,4 @@
+import { defaultBacking, CHANNELS, type MelodyNote, type BackingSettings } from './composition';
 import { buildChord, ROOTS, type ChordSpec, type Key } from './theory';
 export interface ProgressionChord extends ChordSpec {
   id: string;
@@ -9,6 +10,8 @@ export interface Arrangement {
   key: Key;
   bpm: number;
   chords: ProgressionChord[];
+  melody: MelodyNote[];
+  backing: BackingSettings;
 }
 export interface Revision {
   id: string;
@@ -17,18 +20,20 @@ export interface Revision {
   arrangement: Arrangement;
 }
 export interface Project extends Arrangement {
-  schemaVersion: 1;
+  schemaVersion: 2;
   id: string;
   updatedAt: string;
   revisions: Revision[];
 }
 export function newProject(demo = true): Project {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: crypto.randomUUID(),
     name: demo ? 'Schiță de seară' : 'Proiect fără titlu',
     key: { root: 'C', mode: 'major' },
     bpm: 90,
+    melody: [],
+    backing: defaultBacking(),
     updatedAt: new Date().toISOString(),
     revisions: [],
     chords: (demo
@@ -49,7 +54,7 @@ export function newProject(demo = true): Project {
     })),
   };
 }
-function arrangement(value: unknown): Arrangement {
+function arrangement(value: unknown, legacy = false): Arrangement {
   if (!value || typeof value !== 'object') throw new Error('Proiect invalid.');
   const p = value as Record<string, unknown>;
   if (typeof p.name !== 'string' || !p.name.trim() || p.name.length > 100)
@@ -88,13 +93,76 @@ function arrangement(value: unknown): Arrangement {
       section: c.section,
     };
   });
-  return { name: p.name.trim(), bpm: p.bpm, key: { root: key.root, mode: key.mode }, chords };
+  const rawMelody = legacy ? [] : p.melody;
+  if (!Array.isArray(rawMelody) || rawMelody.length > 512)
+    throw new Error('Melodie invalidă (maximum 512 note).');
+  const melodyIds = new Set<string>();
+  const melody = rawMelody.map((raw: unknown) => {
+    if (!raw || typeof raw !== 'object') throw new Error('Notă melodică invalidă.');
+    const n = raw as MelodyNote;
+    if (
+      typeof n.id !== 'string' ||
+      !n.id ||
+      n.id.length > 100 ||
+      melodyIds.has(n.id) ||
+      !Number.isInteger(n.midi) ||
+      n.midi < 40 ||
+      n.midi > 88 ||
+      !Number.isFinite(n.start) ||
+      n.start < 0 ||
+      n.start > 2047.75 ||
+      (n.start * 4) % 1 !== 0 ||
+      !Number.isFinite(n.duration) ||
+      n.duration < 0.25 ||
+      n.duration > 16 ||
+      (n.duration * 4) % 1 !== 0 ||
+      n.start + n.duration > 2048 ||
+      !Number.isFinite(n.velocity) ||
+      n.velocity < 0.05 ||
+      n.velocity > 1
+    )
+      throw new Error('Înălțime, poziție sau durată melodică invalidă.');
+    melodyIds.add(n.id);
+    return { id: n.id, midi: n.midi, start: n.start, duration: n.duration, velocity: n.velocity };
+  });
+  const rawBacking = legacy ? defaultBacking() : (p.backing as BackingSettings);
+  if (
+    !rawBacking ||
+    typeof rawBacking.enabled !== 'boolean' ||
+    !['rock', 'ballad', 'shuffle'].includes(rawBacking.style) ||
+    !rawBacking.mix
+  )
+    throw new Error('Setări de acompaniament invalide.');
+  const backing = defaultBacking();
+  backing.enabled = rawBacking.enabled;
+  backing.style = rawBacking.style;
+  for (const channel of CHANNELS) {
+    const mix = rawBacking.mix[channel];
+    if (
+      !mix ||
+      !Number.isFinite(mix.volume) ||
+      mix.volume < 0 ||
+      mix.volume > 1 ||
+      typeof mix.muted !== 'boolean' ||
+      typeof mix.solo !== 'boolean'
+    )
+      throw new Error('Mixaj invalid.');
+    backing.mix[channel] = { volume: mix.volume, muted: mix.muted, solo: mix.solo };
+  }
+  return {
+    name: p.name.trim(),
+    bpm: p.bpm,
+    key: { root: key.root, mode: key.mode },
+    chords,
+    melody,
+    backing,
+  };
 }
 export function validateProject(value: unknown): Project {
   if (!value || typeof value !== 'object') throw new Error('Fișier invalid.');
-  const p = value as Project;
-  if (p.schemaVersion !== 1)
-    throw new Error('Versiune de proiect incompatibilă. Este acceptată versiunea 1.');
+  const p = value as Omit<Project, 'schemaVersion'> & { schemaVersion: number };
+  if (p.schemaVersion !== 1 && p.schemaVersion !== 2)
+    throw new Error('Versiune de proiect incompatibilă. Sunt acceptate versiunile 1 și 2.');
   if (
     typeof p.id !== 'string' ||
     !p.id ||
@@ -120,23 +188,29 @@ export function validateProject(value: unknown): Project {
       id: r.id,
       createdAt: r.createdAt,
       label: r.label,
-      arrangement: arrangement(r.arrangement),
+      arrangement: arrangement(r.arrangement, p.schemaVersion === 1),
     };
   });
-  return { ...arrangement(p), schemaVersion: 1, id: p.id, updatedAt: p.updatedAt, revisions };
+  return {
+    ...arrangement(p, p.schemaVersion === 1),
+    schemaVersion: 2,
+    id: p.id,
+    updatedAt: p.updatedAt,
+    revisions,
+  };
 }
 export function addRevision(project: Project): Project {
-  const { name, key, bpm, chords } = project;
+  const { name, key, bpm, chords, melody, backing } = project;
   const revision: Revision = {
     id: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
     label: `Versiunea ${Number(project.revisions.at(-1)?.label.match(/(\d+)$/)?.[1] ?? 0) + 1}`,
-    arrangement: structuredClone({ name, key, bpm, chords }),
+    arrangement: structuredClone({ name, key, bpm, chords, melody, backing }),
   };
   return { ...project, revisions: [...project.revisions, revision].slice(-30) };
 }
 export function parseProject(text: string): Project {
-  if (text.length > 2_000_000) throw new Error('Fișierul depășește limita de 2 MB.');
+  if (text.length > 8_000_000) throw new Error('Fișierul depășește limita de 8 MB.');
   try {
     return validateProject(JSON.parse(text));
   } catch (e) {

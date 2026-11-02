@@ -47,8 +47,8 @@ const css = styles
   .replace(/<\/style/gi, '<\\/style');
 const js = scripts[0].code.replace(/<\/script/gi, '<\\/script');
 html = html
-  .replace('</head>', `<style>${css}</style></head>`)
-  .replace('</body>', `<script type="module">${js}</script></body>`);
+  .replace('</head>', () => `<style>${css}</style></head>`)
+  .replace('</body>', () => `<script type="module">${js}</script></body>`);
 html = html.replace(/^[\t ]+$/gm, '');
 await mkdir(new URL('../portable/', import.meta.url), { recursive: true });
 await writeFile(new URL('../portable/Guitar-Composer-Studio.html', import.meta.url), html);

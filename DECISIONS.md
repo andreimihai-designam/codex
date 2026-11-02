@@ -72,3 +72,33 @@ it never redirects recursively. Hosted/dev pages retain the normal entry point.
 Regression tests cover the reported D: drive path, encoded spaces, and the
 no-redirect cases. This identifies the reported source-entry failure; it does
 not establish a browser bug in the portable build.
+
+## 2026-11-02 — Continued implementation: composition modules
+
+The user requested continuing the remaining stages and the same exact Windows
+file address at handoff. Deliver Solo & Melody, basic backing/mix and MIDI/WAV
+in the portable edition. This continues the approved composition workflow;
+no native recording or cloud/AI provider is silently substituted.
+
+Introduce schema v2 with explicit v1 migration for both current state and history.
+Use quarter-beat melody timing, max 512 notes and 8MB validated interchange. Live
+playback, MIDI and offline WAV consume one deterministic event plan. Melody
+sketching is seeded and explained as rule-based, not AI. Replacing a sketch
+preserves a history checkpoint. Exported MIDI has four instrument tracks plus
+conductor; overlapping same-pitch notes are merged per track. WAV is one pass,
+44.1kHz stereo PCM and limited to 180 seconds before allocating audio buffers.
+Mix levels are settings indicators, not fake real-time meters. Mute has priority
+over solo; inactive backing channels cannot solo away the harmony.
+
+The user confirmed Windows 11 with a Focusrite Scarlett 4i4. Generation and driver
+are unknown. Native packaging, ASIO/WASAPI I/O, actual latency and multitrack
+recording remain pending Windows/interface validation; see docs/WINDOWS_AUDIO.md.
+
+## 2026-11-02 — Portable artifact regression caught before v0.2 delivery
+
+The resource-blocked portable browser test found a bundle-only parse failure:
+String.replace interpreted dollar replacement tokens inside minified JavaScript.
+Use replacement callbacks when injecting the bundle/styles so their bytes remain
+literal. Add a regression test that parses every script in the shipped HTML and
+checks document structure and resource independence. Validate the actual rebuilt
+artifact in Chromium in addition to the normal web/PWA build.

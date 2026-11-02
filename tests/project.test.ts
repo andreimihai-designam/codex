@@ -17,7 +17,7 @@ describe('project interchange and history', () => {
   });
   it('rejects invalid JSON, schema, tempo, key, duration and duplicate IDs', () => {
     expect(() => parseProject('{broken')).toThrow('JSON');
-    expect(() => validateProject({ ...newProject(), schemaVersion: 2 })).toThrow('Versiune');
+    expect(() => validateProject({ ...newProject(), schemaVersion: 99 })).toThrow('Versiune');
     expect(() => validateProject({ ...newProject(), bpm: 0 })).toThrow('Tempo');
     expect(() => validateProject({ ...newProject(), key: { root: 'H', mode: 'major' } })).toThrow(
       'Tonalitate',
@@ -35,7 +35,7 @@ describe('project interchange and history', () => {
     expect(() => validateProject(p)).toThrow('Inversiune');
   });
   it('limits file size, chord count and revision count', () => {
-    expect(() => parseProject(' '.repeat(2_000_001))).toThrow('2 MB');
+    expect(() => parseProject(' '.repeat(8_000_001))).toThrow('8 MB');
     const p = newProject();
     p.chords = Array.from({ length: 129 }, (_, i) => ({ ...p.chords[0], id: String(i) }));
     expect(() => validateProject(p)).toThrow('128');

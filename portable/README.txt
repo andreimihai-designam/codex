@@ -1,4 +1,4 @@
-GUITAR COMPOSER STUDIO - PORTABLE BROWSER EDITION
+GUITAR COMPOSER STUDIO v0.2 - PORTABLE BROWSER EDITION
 
 No Node.js or npm is needed for this edition.
 
@@ -11,7 +11,9 @@ as .gcs.json files. Moving the HTML file or changing browsers can change the
 storage context; keep exported backups. If storage is unavailable, export your
 project before closing the window.
 
-This is the harmony/fretboard application, not a native Windows audio recorder.
+Includes Harmony, Solo & Melody, synthesized backing/mix, MIDI and WAV export.
+WAV is stereo PCM and limited to 3 minutes. v1 projects migrate automatically;
+v2 exports require the updated application. This is not a native audio recorder.
 The companion PWA requires the normal HTTPS build; this portable file does not
 register a service worker.
 

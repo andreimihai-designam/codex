@@ -36,9 +36,13 @@ These defaults do not establish requirements for professional recording.
 
 ## Current boundaries
 
-This increment delivers a browser-based implementation of the core workflow.
+Version 0.2 delivers the offline/browser core workflow, a piano-roll melody
+editor, deterministic melody sketches, synthesized backing/mix and MIDI/WAV
+export, with v1 project migration and complete composition history.
 Native Tauri packaging, desktop SQLite, real iPhone qualification, recording,
-audio timeline editing, audio export and automatic synchronization are pending.
+recorded-audio timeline editing and automatic synchronization are pending.
+Native audio target confirmed by the user: Windows 11 and Focusrite Scarlett 4i4;
+the interface generation and installed driver remain to be confirmed.
 The audio engine is a browser synthesizer, not a recording or guitar amp engine.
 Acceptance and verification details are in README.md and docs/ARCHITECTURE.md.
 

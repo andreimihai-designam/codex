@@ -6,19 +6,30 @@
   Roman numeral analysis, scales and explained substitutions. No browser APIs.
 - `src/core/guitar.ts`: MIDI tuning, complete-tone/bass-constrained shape search
   and deterministic movement ranking. No audio or persistence dependencies.
+- `src/core/composition.ts`: pure timeline planning, seeded melody generation,
+  groove events and channel mix/solo policy shared by live and export paths.
+- `src/core/midi.ts`: binary SMF writer, tempo/4-4 conductor plus four instrument
+  tracks. Merges overlapping same-pitch notes within a track.
+- `src/components/`: separate melody and backing/export views.
 - `src/core/project.ts`: versioned interchange model, bounds validation, history.
 - `src/services/storage.ts`: IndexedDB transactions, project CRUD.
 - `src/services/audio.ts`: browser-only audio playback. Oscillator envelopes and
   future transport events use AudioContext time. A 25ms scheduler feeds a 150ms
-  lookahead; no real-time guarantee is claimed under browser/device throttling.
+  lookahead using absolute composition beats; loop boundaries use the same audio
+  clock. OfflineAudioContext reuses the same synthesized event renderer for WAV,
+  with a 180-second pre-allocation limit. No real-time guarantee is claimed under
+  browser/device throttling.
 - `src/App.tsx`: responsive Harmony Studio and project library. Domain results
   are derived, not persisted as competing sources of truth.
 - `vite.config.ts`: offline production shell with a generated Workbox worker.
 
-Project schema version 1 stores ID, name, explicit key/mode, tempo, progression
+Project schema version 2 stores ID, name, explicit key/mode, tempo, progression
 entries, updated time and up to 30 full arrangement snapshots. Each entry stores
-root, quality, inversion, beat count, section and stable ID. Projects are capped
-at 128 entries and import files at 2MB. Import reconstructs known fields rather
+root, quality, inversion, beat count, section and stable ID. Melody entries store
+MIDI pitch, start/duration in beats, velocity and stable ID. Backing stores groove,
+enable state, and four volume/mute/solo channels. Projects are capped at 128
+chords, 512 notes, 30 revisions and an 8MB import size. v1 is migrated explicitly
+with empty melody/default disabled backing in all snapshots. Import reconstructs known fields rather
 than merging arbitrary properties. No executable code is accepted from files.
 
 ## Known musical limits
@@ -31,7 +42,10 @@ than merging arbitrary properties. No executable code is accepted from files.
   not claim a scale will fit every chord in a progression or every musical style.
 - Guitar output does not solve finger assignments, barre constraints, timbre,
   string bendability or individual hand comfort. Muted strings are marked ×.
-- Web Audio produces a plucked triangle synthesizer, not a sampled electric guitar.
+- Web Audio produces synthesized harmony, lead, bass and deterministic-noise
+  percussion, not recorded guitar or sampled instruments. WAV is bounded to 3
+  minutes; live/MIDI retain the full validated arrangement. The piano roll uses
+  a quarter-beat grid and supports simultaneous notes, not notation/tab engraving.
 - Sections are labels; changing labels does not alter playback ordering.
 
 ## Windows desktop milestone
@@ -56,8 +70,9 @@ threads; design crash recovery and latency compensation before timeline editing.
 
 ## Later modules
 
-- Solo/melody editor: shared note/scale model, rhythmic event schema and playback.
-- Backing tracks: deterministic generation plus licensed/local sound assets.
+- Solo/melody and basic backing are delivered in v0.2. Further work may include
+  tablature, legato/articulations, phrase tools and richer sound assets, subject
+  to their specific scope.
 - AI: optional local Ollama or budget-limited cloud adapter; validate proposed
   operations through the core. Never make core features depend on AI availability.
 - Audio studio: multitrack transport, waveform cache, non-destructive edit model,

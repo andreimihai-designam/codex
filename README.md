@@ -1,8 +1,9 @@
 # Guitar Composer Studio
 
-A local-first guitar harmony workspace. This first implementation includes a
+A local-first guitar harmony workspace. Version 0.2 includes a
 Romanian-language Harmony Studio, deterministic theory, an interactive fretboard,
-synthesized playback and a local project library. No account or API key is needed.
+a piano-roll melody editor, synthesized backing tracks, a four-part mixer,
+MIDI/WAV export and a local project library. No account or API key is needed.
 
 ## Open without installing Node.js
 
@@ -53,6 +54,29 @@ cross-device sync is implemented, and no project content is sent to a server.
 The local development server exposes project source to reachable clients; use
 it on a trusted development network. Host only the built `dist` assets publicly.
 
+## Solo, backing and export
+
+- **Solo & Melody**: click a grid cell to add a note. Select an existing note to
+  edit pitch, duration, position and velocity, or delete it. Each measure contains
+  16 steps. Change the register and use the measure arrows to navigate.
+- **Generează schiță**: a reproducible, seeded rule-based sketch, with chord tones
+  on beats and scale tones between. Replacing/clearing a melody saves the previous
+  arrangement to history. This is not an AI service.
+- **Backing & Export**: enable synthesized bass/drums, select Rock/Ballad/Shuffle,
+  then set the four parts' levels, mute and solo. Settings apply at the next play
+  and to exports. Mute takes priority; any active solo excludes non-solo parts.
+- **Exportă MIDI**: Standard MIDI File type 1, 480 PPQ, tempo/4-4 conductor track
+  plus harmony, melody, bass and percussion. Overlapping same-pitch notes are
+  merged within each melodic track to avoid premature MIDI note-off.
+- **Exportă WAV**: one pass of the mix, stereo 16-bit PCM / 44.1kHz, no metronome.
+  Limited to 3 minutes to bound browser memory. This is synthesized audio, not
+  recorded guitar. The master volume and mix settings affect the WAV.
+- Melody-only projects can play without any harmony chords. Imported v1 projects
+  receive an empty melody and disabled backing; v2 saves keep these additions in
+  project history. Import limit: 8MB, 512 melody notes, 128 chords, 30 snapshots.
+  v2 files are not readable by the old v0.1 application. Export a backup before
+  replacing the HTML file or browser data.
+
 ## iPhone / offline
 
 Build and serve `dist` on an HTTPS origin. Open it in Safari and use **Add to Home
@@ -70,6 +94,10 @@ qualified; responsive layout checks in Chromium do not establish iOS compatibili
 - `python3 tests/browser_offline.py`: production service-worker registration,
   offline reload, editing and IndexedDB persistence against a running preview
   server at port 4173. Uses the same Playwright/Chromium prerequisites.
+- `python3 tests/browser_composer.py`: actual IndexedDB v1 migration, melody
+  editing/persistence, seeded sketches/history, mix controls, transport, MIDI
+  downloads, nonzero stereo WAV rendering, restore and mobile layouts. Uses the
+  production preview at port 4173 by default.
 - `npm run build`: strict TypeScript checking and production build with PWA cache.
 - `python3 tests/browser_smoke.py`: Chromium functional checks against a running
   app at port 5173. Requires Python Playwright and Chromium. Set `CHROMIUM_PATH`
@@ -86,8 +114,8 @@ latency. No native recording, Windows driver or actual iPhone tests are claimed.
 - [Approved brief and scope](PROJECT_BRIEF.md)
 - [Decision log](DECISIONS.md)
 - [Architecture, limits and next milestones](docs/ARCHITECTURE.md)
+- [Windows 11 / Scarlett 4i4 audio milestone](docs/WINDOWS_AUDIO.md)
 - [Central collaboration rules](AGENTS.md)
 
-Multitrack recording, solo/melody editing, AI, backing tracks, SQLite/Tauri desktop
-integration and automatic sync are subsequent milestones, not working features
-in this version. The sidebar identifies later modules explicitly.
+Native multitrack recording, AI, SQLite/Tauri desktop integration and automatic
+sync are subsequent milestones, not working features in this version. The sidebar identifies later modules explicitly.

@@ -62,7 +62,11 @@ import {
   type ProgressionChord,
 } from './core/project';
 import { deleteProject, listProjects, saveProject } from './services/storage';
-import { AudioEngine } from './services/audio';
+import { AudioEngine, renderWav } from './services/audio';
+import { arrangementBeats, type MelodyNote } from './core/composition';
+import { exportMidi } from './core/midi';
+import SoloComposer from './components/SoloComposer';
+import BackingStudio from './components/BackingStudio';
 
 const audio = new AudioEngine();
 const formatDate = (s: string) =>
@@ -190,6 +194,14 @@ export default function App() {
   const [storageState, setStorageState] = useState<'saving' | 'saved' | 'error'>('saving');
   const [selectedId, setSelectedId] = useState<string>('');
   const [view, setView] = useState<'studio' | 'library'>('studio');
+  const [workspaceTab, setWorkspaceTab] = useState<'harmony' | 'solo' | 'backing'>('harmony');
+  const [exporting, setExporting] = useState(false);
+  const workspaceTitle =
+    workspaceTab === 'solo'
+      ? 'Solo & Melody'
+      : workspaceTab === 'backing'
+        ? 'Backing & Export'
+        : 'Harmony Studio';
   const [projects, setProjects] = useState<Project[]>([]);
   const [modal, setModal] = useState<'add' | 'history' | 'help' | null>(null);
   const [root, setRoot] = useState('F');
@@ -234,9 +246,9 @@ export default function App() {
     [selected, previous],
   );
   const voicing = voicings[voicingIndex] ?? voicings[0];
-  const totalBeats = project.chords.reduce((sum, c) => sum + c.beats, 0);
+  const totalBeats = arrangementBeats(project);
   const seconds = Math.round((totalBeats * 60) / project.bpm);
-  const changesDisabled = playing || !loaded;
+  const changesDisabled = playing || !loaded || exporting;
 
   useEffect(() => {
     let cancelled = false;
@@ -319,7 +331,7 @@ export default function App() {
       stop();
       return;
     }
-    if (!project.chords.length) return;
+    if (!totalBeats) return;
     const token = ++operation.current;
     try {
       await audio.unlock();
@@ -429,7 +441,7 @@ export default function App() {
     e.target.value = '';
     if (!file) return;
     try {
-      if (file.size > 2_000_000) throw new Error('Fișierul depășește limita de 2 MB.');
+      if (file.size > 8_000_000) throw new Error('Fișierul depășește limita de 8 MB.');
       const imported = parseProject(await file.text());
       await persistCurrent();
       // New identity preserves an existing project even when importing its older export.
@@ -443,6 +455,110 @@ export default function App() {
     }
   }
 
+  function changeMelody(melody: MelodyNote[], checkpoint = false) {
+    update((p) => ({ ...(checkpoint ? addRevision(p) : p), melody }));
+  }
+  function download(bytes: Uint8Array<ArrayBuffer>, extension: string, type: string) {
+    const url = URL.createObjectURL(new Blob([bytes], { type }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${project.name.replace(/[^\p{L}\p{N}_-]/gu, '-').slice(0, 80)}.${extension}`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  async function exportAudio(kind: 'midi' | 'wav') {
+    if (changesDisabled) return;
+    setExporting(true);
+    try {
+      if (kind === 'midi') download(exportMidi(project), 'mid', 'audio/midi');
+      else download(await renderWav(project, volume / 100), 'wav', 'audio/wav');
+      setNotice(
+        kind === 'midi'
+          ? 'Compoziție exportată ca MIDI multipistă.'
+          : 'Mix stereo exportat ca WAV.',
+      );
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : 'Exportul a eșuat.');
+    } finally {
+      setExporting(false);
+    }
+  }
+  const transport = (
+    <div className="transport">
+      <div className="transport-primary">
+        <button
+          className={`play-button ${playing ? 'playing' : ''}`}
+          aria-label={playing ? 'Oprește progresia' : 'Redă progresia'}
+          disabled={!loaded || !totalBeats || exporting}
+          onClick={togglePlayback}
+        >
+          {playing ? (
+            <Pause size={20} fill="currentColor" />
+          ) : (
+            <Play size={20} fill="currentColor" />
+          )}
+        </button>
+        <div className="beat-lights" aria-label="Poziție în măsura de 4 timpi">
+          {[0, 1, 2, 3].map((b) => (
+            <span key={b} className={activeBeat === b ? 'lit' : ''} />
+          ))}
+        </div>
+        <div className="transport-divider" />
+        <label className="tempo">
+          <input
+            aria-label="Tempo BPM"
+            type="number"
+            min={30}
+            max={240}
+            value={project.bpm}
+            disabled={changesDisabled}
+            onChange={(e) => {
+              const n = Number(e.target.value);
+              if (n >= 30 && n <= 240) update((p) => ({ ...p, bpm: Math.round(n) }));
+            }}
+          />
+          <span>BPM</span>
+        </label>
+      </div>
+      <div className="transport-options">
+        <button
+          className={`toggle-button ${loop ? 'on' : ''}`}
+          onClick={() => setLoop((v) => !v)}
+          disabled={playing}
+          aria-pressed={loop}
+          aria-label="Repetă progresia"
+        >
+          <Repeat2 size={18} />
+        </button>
+        <button
+          className={`toggle-button ${metronome ? 'on' : ''}`}
+          onClick={() => {
+            setMetronome((v) => !v);
+            audio.setMetronome(!metronome);
+          }}
+          aria-pressed={metronome}
+          aria-label="Metronom"
+        >
+          <Activity size={18} />
+        </button>
+        <span className="transport-divider" />
+        <Volume2 size={17} />
+        <input
+          type="range"
+          aria-label="Volum"
+          min="0"
+          max="100"
+          value={volume}
+          onChange={(e) => {
+            const n = Number(e.target.value);
+            setVolume(n);
+            audio.setVolume(n / 100);
+          }}
+        />
+      </div>
+    </div>
+  );
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -452,6 +568,7 @@ export default function App() {
           onClick={(e) => {
             e.preventDefault();
             setView('studio');
+            setWorkspaceTab('harmony');
           }}
           aria-label="Guitar Composer Studio"
         >
@@ -466,8 +583,13 @@ export default function App() {
         <div className="workspace-label">SPAȚIUL TĂU DE CREAȚIE</div>
         <nav aria-label="Navigare principală">
           <button
-            className={view === 'studio' ? 'nav-item active' : 'nav-item'}
-            onClick={() => setView('studio')}
+            className={
+              view === 'studio' && workspaceTab === 'harmony' ? 'nav-item active' : 'nav-item'
+            }
+            onClick={() => {
+              setView('studio');
+              setWorkspaceTab('harmony');
+            }}
           >
             <Layers3 size={19} /> Harmony Studio <span className="nav-indicator" />
           </button>
@@ -475,6 +597,7 @@ export default function App() {
             className="nav-item"
             onClick={() => {
               setView('studio');
+              setWorkspaceTab('harmony');
               setTimeout(
                 () =>
                   document
@@ -493,11 +616,30 @@ export default function App() {
           >
             <Library size={19} /> Biblioteca mea
           </button>
+          <button
+            className={
+              view === 'studio' && workspaceTab === 'solo' ? 'nav-item active' : 'nav-item'
+            }
+            onClick={() => {
+              setView('studio');
+              setWorkspaceTab('solo');
+            }}
+          >
+            <Music2 size={19} /> Solo & Melody
+          </button>
+          <button
+            className={
+              view === 'studio' && workspaceTab === 'backing' ? 'nav-item active' : 'nav-item'
+            }
+            onClick={() => {
+              setView('studio');
+              setWorkspaceTab('backing');
+            }}
+          >
+            <Waves size={19} /> Backing & Export
+          </button>
         </nav>
         <div className="workspace-label upcoming-label">ÎN ETAPELE URMĂTOARE</div>
-        <div className="nav-item unavailable">
-          <Music2 size={19} /> Solo & Melody <span>curând</span>
-        </div>
         <div className="nav-item unavailable">
           <Mic2 size={19} /> Audio Studio <span>curând</span>
         </div>
@@ -515,7 +657,7 @@ export default function App() {
             <CircleHelp size={18} /> Ghidul studioului <span>↗</span>
           </button>
           <div className="sidebar-version">
-            GUITAR COMPOSER STUDIO <span>v0.1</span>
+            GUITAR COMPOSER STUDIO <span>v0.2</span>
           </div>
         </div>
       </aside>
@@ -524,7 +666,7 @@ export default function App() {
           <div className="breadcrumb">
             <span>Workspace</span>
             <span>/</span>
-            <strong>{view === 'studio' ? 'Harmony Studio' : 'Bibliotecă'}</strong>
+            <strong>{view === 'studio' ? workspaceTitle : 'Bibliotecă'}</strong>
           </div>
           <div className="topbar-actions">
             <span className={`save-status ${storageState}`} role="status">
@@ -553,12 +695,16 @@ export default function App() {
                 <span /> ATELIERUL TĂU DE COMPOZIȚIE
               </div>
               <h1>
-                {view === 'studio' ? 'Harmony Studio' : 'Biblioteca mea'}
+                {view === 'studio' ? workspaceTitle : 'Biblioteca mea'}
                 <span className="heading-dot">.</span>
               </h1>
               <p>
                 {view === 'studio'
-                  ? 'Explorează acorduri. Găsește conexiuni. Dă formă următoarei idei.'
+                  ? workspaceTab === 'solo'
+                    ? 'Transformă armonia într-o melodie. Compune, ascultă și rafinează.'
+                    : workspaceTab === 'backing'
+                      ? 'Adaugă ritm și bas. Echilibrează mixul și exportă ideea completă.'
+                      : 'Explorează acorduri. Găsește conexiuni. Dă formă următoarei idei.'
                   : 'Un loc pentru fiecare idee, de la prima schiță la ultima versiune.'}
               </p>
             </div>
@@ -676,577 +822,561 @@ export default function App() {
                   </IconButton>
                 </div>
               </section>
-              <div className="studio-grid">
-                <div className="primary-column">
-                  <section className="panel progression-panel">
-                    <div className="panel-header">
-                      <div className="section-title">
-                        <span className="section-icon">
-                          <ListMusic size={18} />
-                        </span>
-                        <h2>Progresia ta</h2>
-                        <span className="subtle-badge">{project.chords.length} acorduri</span>
-                      </div>
-                      <div className="key-picker">
-                        <label htmlFor="key-root">Tonalitate</label>
-                        <select
-                          id="key-root"
-                          value={project.key.root}
-                          disabled={changesDisabled}
-                          onChange={(e) =>
-                            update((p) => ({ ...p, key: { ...p.key, root: e.target.value } }))
-                          }
-                        >
-                          {ROOTS.map((n) => (
-                            <option key={n}>{n}</option>
-                          ))}
-                        </select>
-                        <select
-                          aria-label="Mod tonalitate"
-                          value={project.key.mode}
-                          disabled={changesDisabled}
-                          onChange={(e) =>
-                            update((p) => ({
-                              ...p,
-                              key: { ...p.key, mode: e.target.value as 'major' | 'minor' },
-                            }))
-                          }
-                        >
-                          <option value="major">Major</option>
-                          <option value="minor">Minor</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div
-                      className="chord-strip"
-                      tabIndex={0}
-                      role="group"
-                      aria-label="Acorduri în progresie, derulare orizontală"
-                    >
-                      {project.chords.map((chord, i) => {
-                        const a = analyze(chord, project.key);
-                        return (
-                          <button
-                            type="button"
-                            key={chord.id}
-                            className={`chord-card ${selected?.id === chord.id ? 'selected' : ''} ${activeIndex === i ? 'is-playing' : ''}`}
-                            onClick={() => setSelectedId(chord.id)}
-                            aria-pressed={selected?.id === chord.id}
-                          >
-                            <div className="chord-card-top">
-                              <span>
-                                {chord.section || 'A'}
-                                <span className="card-number">
-                                  {String(i + 1).padStart(2, '0')}
-                                </span>
-                              </span>
-                              <span>{a.roman}</span>
-                            </div>
-                            <strong>{buildChord(chord).symbol}</strong>
-                            <div className="chord-card-bottom">
-                              <span>{chord.beats} timpi</span>
-                              <span
-                                className={`function-dot ${a.diatonic ? 'diatonic' : 'chromatic'}`}
-                              />
-                            </div>
-                            <span className="card-bottom-line" />
-                          </button>
-                        );
-                      })}
-                      <button
-                        className="add-chord"
-                        onClick={() => setModal('add')}
-                        disabled={changesDisabled || project.chords.length >= 128}
-                      >
-                        <Plus size={23} />
-                        <span>
-                          Adaugă
-                          <br />
-                          acord
-                        </span>
-                      </button>
-                    </div>
-                    <div className="progression-footer">
-                      <span>
-                        <span className="legend-dot green" /> Diatonic în tonalitate
-                      </span>
-                      <span>
-                        <span className="legend-dot amber" /> Cromatic / împrumutat
-                      </span>
-                      <span className="duration">
-                        4/4 · {(totalBeats / 4) % 1 ? (totalBeats / 4).toFixed(2) : totalBeats / 4}{' '}
-                        măsuri · {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, '0')}
-                      </span>
-                    </div>
-                    <div className="transport">
-                      <div className="transport-primary">
-                        <button
-                          className={`play-button ${playing ? 'playing' : ''}`}
-                          aria-label={playing ? 'Oprește progresia' : 'Redă progresia'}
-                          disabled={!loaded || !project.chords.length}
-                          onClick={togglePlayback}
-                        >
-                          {playing ? (
-                            <Pause size={20} fill="currentColor" />
-                          ) : (
-                            <Play size={20} fill="currentColor" />
-                          )}
-                        </button>
-                        <div className="beat-lights" aria-label="Poziție în măsura de 4 timpi">
-                          {[0, 1, 2, 3].map((b) => (
-                            <span key={b} className={activeBeat === b ? 'lit' : ''} />
-                          ))}
-                        </div>
-                        <div className="transport-divider" />
-                        <label className="tempo">
-                          <input
-                            aria-label="Tempo BPM"
-                            type="number"
-                            min={30}
-                            max={240}
-                            value={project.bpm}
-                            disabled={changesDisabled}
-                            onChange={(e) => {
-                              const n = Number(e.target.value);
-                              if (n >= 30 && n <= 240)
-                                update((p) => ({ ...p, bpm: Math.round(n) }));
-                            }}
-                          />
-                          <span>BPM</span>
-                        </label>
-                      </div>
-                      <div className="transport-options">
-                        <button
-                          className={`toggle-button ${loop ? 'on' : ''}`}
-                          onClick={() => setLoop((v) => !v)}
-                          disabled={playing}
-                          aria-pressed={loop}
-                          aria-label="Repetă progresia"
-                        >
-                          <Repeat2 size={18} />
-                        </button>
-                        <button
-                          className={`toggle-button ${metronome ? 'on' : ''}`}
-                          onClick={() => {
-                            setMetronome((v) => !v);
-                            audio.setMetronome(!metronome);
-                          }}
-                          aria-pressed={metronome}
-                          aria-label="Metronom"
-                        >
-                          <Activity size={18} />
-                        </button>
-                        <span className="transport-divider" />
-                        <Volume2 size={17} />
-                        <input
-                          type="range"
-                          aria-label="Volum"
-                          min="0"
-                          max="100"
-                          value={volume}
-                          onChange={(e) => {
-                            const n = Number(e.target.value);
-                            setVolume(n);
-                            audio.setVolume(n / 100);
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </section>
-                  {selected && built ? (
-                    <section className="panel chord-editor">
+              <div className="workspace-tabs" role="group" aria-label="Module proiect">
+                <button
+                  className={workspaceTab === 'harmony' ? 'current' : ''}
+                  aria-pressed={workspaceTab === 'harmony'}
+                  onClick={() => setWorkspaceTab('harmony')}
+                >
+                  <Layers3 size={16} />
+                  Harmony
+                </button>
+                <button
+                  className={workspaceTab === 'solo' ? 'current' : ''}
+                  aria-pressed={workspaceTab === 'solo'}
+                  onClick={() => setWorkspaceTab('solo')}
+                >
+                  <Music2 size={16} />
+                  Melodie
+                </button>
+                <button
+                  className={workspaceTab === 'backing' ? 'current' : ''}
+                  aria-pressed={workspaceTab === 'backing'}
+                  onClick={() => setWorkspaceTab('backing')}
+                >
+                  <Waves size={16} />
+                  Backing & export
+                </button>
+              </div>
+              {workspaceTab === 'harmony' ? (
+                <div className="studio-grid">
+                  <div className="primary-column">
+                    <section className="panel progression-panel">
                       <div className="panel-header">
                         <div className="section-title">
                           <span className="section-icon">
-                            <Settings2 size={18} />
+                            <ListMusic size={18} />
                           </span>
-                          <h2>Detaliile acordului</h2>
+                          <h2>Progresia ta</h2>
+                          <span className="subtle-badge">{project.chords.length} acorduri</span>
                         </div>
-                        <div className="editor-actions">
-                          <IconButton
-                            label="Mută acordul la stânga"
-                            onClick={() => moveChord(-1)}
-                            disabled={changesDisabled || selectedIndex === 0}
-                          >
-                            <ArrowLeft size={16} />
-                          </IconButton>
-                          <IconButton
-                            label="Mută acordul la dreapta"
-                            onClick={() => moveChord(1)}
-                            disabled={
-                              changesDisabled || selectedIndex === project.chords.length - 1
+                        <div className="key-picker">
+                          <label htmlFor="key-root">Tonalitate</label>
+                          <select
+                            id="key-root"
+                            value={project.key.root}
+                            disabled={changesDisabled}
+                            onChange={(e) =>
+                              update((p) => ({ ...p, key: { ...p.key, root: e.target.value } }))
                             }
                           >
-                            <ArrowRight size={16} />
-                          </IconButton>
-                          <IconButton
-                            label="Duplică acordul"
-                            onClick={() => addChord(selected)}
-                            disabled={changesDisabled || project.chords.length >= 128}
-                          >
-                            <Copy size={16} />
-                          </IconButton>
-                          <IconButton
-                            label="Șterge acordul"
-                            onClick={() => {
+                            {ROOTS.map((n) => (
+                              <option key={n}>{n}</option>
+                            ))}
+                          </select>
+                          <select
+                            aria-label="Mod tonalitate"
+                            value={project.key.mode}
+                            disabled={changesDisabled}
+                            onChange={(e) =>
                               update((p) => ({
                                 ...p,
-                                chords: p.chords.filter((c) => c.id !== selected.id),
-                              }));
-                              setSelectedId('');
-                            }}
-                            disabled={changesDisabled}
+                                key: { ...p.key, mode: e.target.value as 'major' | 'minor' },
+                              }))
+                            }
                           >
-                            <Trash2 size={16} />
-                          </IconButton>
+                            <option value="major">Major</option>
+                            <option value="minor">Minor</option>
+                          </select>
                         </div>
                       </div>
-                      <div className="chord-editor-body">
-                        <div className="selected-chord">
-                          <span className="mini-label">ACORD SELECTAT</span>
-                          <strong>{built.symbol}</strong>
-                          <button
-                            className="text-button audition"
-                            onClick={() => preview(built.midi)}
-                            disabled={playing}
-                          >
-                            <Volume2 size={14} /> Ascultă acordul
-                          </button>
-                        </div>
-                        <div className="editor-fields">
-                          <label>
-                            Fundamentală
-                            <select
-                              aria-label="Fundamentală"
-                              value={selected.root}
-                              disabled={changesDisabled}
-                              onChange={(e) => updateChord({ root: e.target.value })}
+                      <div
+                        className="chord-strip"
+                        tabIndex={0}
+                        role="group"
+                        aria-label="Acorduri în progresie, derulare orizontală"
+                      >
+                        {project.chords.map((chord, i) => {
+                          const a = analyze(chord, project.key);
+                          return (
+                            <button
+                              type="button"
+                              key={chord.id}
+                              className={`chord-card ${selected?.id === chord.id ? 'selected' : ''} ${activeIndex === i ? 'is-playing' : ''}`}
+                              onClick={() => setSelectedId(chord.id)}
+                              aria-pressed={selected?.id === chord.id}
                             >
-                              {ROOTS.map((n) => (
-                                <option key={n}>{n}</option>
-                              ))}
-                            </select>
-                          </label>
-                          <label>
-                            Tip acord
-                            <select
-                              aria-label="Tip acord"
-                              value={selected.quality}
-                              disabled={changesDisabled}
-                              onChange={(e) =>
-                                updateChord({ quality: e.target.value as Quality, inversion: 0 })
-                              }
-                            >
-                              {QUALITIES.map((q) => (
-                                <option value={q.suffix} key={q.suffix}>
-                                  {q.label}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          <label>
-                            Inversiune
-                            <select
-                              aria-label="Inversiune"
-                              value={selected.inversion}
-                              disabled={changesDisabled}
-                              onChange={(e) => updateChord({ inversion: Number(e.target.value) })}
-                            >
-                              {built.notes.map((_, i) => (
-                                <option key={i} value={i}>
-                                  {i === 0 ? 'Poziție fundamentală' : `Inversiunea ${i}`}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          <label>
-                            Durată
-                            <select
-                              aria-label="Durată"
-                              value={selected.beats}
-                              disabled={changesDisabled}
-                              onChange={(e) => updateChord({ beats: Number(e.target.value) })}
-                            >
-                              {Array.from({ length: 16 }, (_, i) => (
-                                <option key={i} value={i + 1}>
-                                  {i + 1} {i === 0 ? 'timp' : 'timpi'}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          <label>
-                            Secțiune
-                            <input
-                              aria-label="Secțiune"
-                              value={selected.section}
-                              maxLength={24}
-                              disabled={changesDisabled}
-                              onChange={(e) => updateChord({ section: e.target.value })}
-                            />
-                          </label>
-                        </div>
-                      </div>
-                      <div className="chord-notes">
-                        <span>NOTELE ACORDULUI</span>
-                        {built.notes.map((n) => (
-                          <span className="note-pill" key={n}>
-                            {n}
+                              <div className="chord-card-top">
+                                <span>
+                                  {chord.section || 'A'}
+                                  <span className="card-number">
+                                    {String(i + 1).padStart(2, '0')}
+                                  </span>
+                                </span>
+                                <span>{a.roman}</span>
+                              </div>
+                              <strong>{buildChord(chord).symbol}</strong>
+                              <div className="chord-card-bottom">
+                                <span>{chord.beats} timpi</span>
+                                <span
+                                  className={`function-dot ${a.diatonic ? 'diatonic' : 'chromatic'}`}
+                                />
+                              </div>
+                              <span className="card-bottom-line" />
+                            </button>
+                          );
+                        })}
+                        <button
+                          className="add-chord"
+                          onClick={() => setModal('add')}
+                          disabled={changesDisabled || project.chords.length >= 128}
+                        >
+                          <Plus size={23} />
+                          <span>
+                            Adaugă
+                            <br />
+                            acord
                           </span>
-                        ))}
-                        <span className="formula">
-                          {QUALITIES.find((q) => q.suffix === selected.quality)?.formula}
+                        </button>
+                      </div>
+                      <div className="progression-footer">
+                        <span>
+                          <span className="legend-dot green" /> Diatonic în tonalitate
+                        </span>
+                        <span>
+                          <span className="legend-dot amber" /> Cromatic / împrumutat
+                        </span>
+                        <span className="duration">
+                          4/4 ·{' '}
+                          {(totalBeats / 4) % 1 ? (totalBeats / 4).toFixed(2) : totalBeats / 4}{' '}
+                          măsuri · {Math.floor(seconds / 60)}:
+                          {String(seconds % 60).padStart(2, '0')}
                         </span>
                       </div>
+                      {transport}
                     </section>
-                  ) : (
-                    <div className="panel empty-state">
-                      <Music2 size={30} />
-                      <h2>Prima idee începe cu un acord.</h2>
-                      <p>Adaugă un acord pentru a explora armonia și pozițiile pe chitară.</p>
-                      <button
-                        className="button dark"
-                        onClick={() => setModal('add')}
-                        disabled={!loaded}
-                      >
-                        <Plus size={16} /> Adaugă acord
-                      </button>
-                    </div>
-                  )}
-                  {selected && (
-                    <section className="panel fretboard-panel" id="fretboard">
+                    {selected && built ? (
+                      <section className="panel chord-editor">
+                        <div className="panel-header">
+                          <div className="section-title">
+                            <span className="section-icon">
+                              <Settings2 size={18} />
+                            </span>
+                            <h2>Detaliile acordului</h2>
+                          </div>
+                          <div className="editor-actions">
+                            <IconButton
+                              label="Mută acordul la stânga"
+                              onClick={() => moveChord(-1)}
+                              disabled={changesDisabled || selectedIndex === 0}
+                            >
+                              <ArrowLeft size={16} />
+                            </IconButton>
+                            <IconButton
+                              label="Mută acordul la dreapta"
+                              onClick={() => moveChord(1)}
+                              disabled={
+                                changesDisabled || selectedIndex === project.chords.length - 1
+                              }
+                            >
+                              <ArrowRight size={16} />
+                            </IconButton>
+                            <IconButton
+                              label="Duplică acordul"
+                              onClick={() => addChord(selected)}
+                              disabled={changesDisabled || project.chords.length >= 128}
+                            >
+                              <Copy size={16} />
+                            </IconButton>
+                            <IconButton
+                              label="Șterge acordul"
+                              onClick={() => {
+                                update((p) => ({
+                                  ...p,
+                                  chords: p.chords.filter((c) => c.id !== selected.id),
+                                }));
+                                setSelectedId('');
+                              }}
+                              disabled={changesDisabled}
+                            >
+                              <Trash2 size={16} />
+                            </IconButton>
+                          </div>
+                        </div>
+                        <div className="chord-editor-body">
+                          <div className="selected-chord">
+                            <span className="mini-label">ACORD SELECTAT</span>
+                            <strong>{built.symbol}</strong>
+                            <button
+                              className="text-button audition"
+                              onClick={() => preview(built.midi)}
+                              disabled={playing}
+                            >
+                              <Volume2 size={14} /> Ascultă acordul
+                            </button>
+                          </div>
+                          <div className="editor-fields">
+                            <label>
+                              Fundamentală
+                              <select
+                                aria-label="Fundamentală"
+                                value={selected.root}
+                                disabled={changesDisabled}
+                                onChange={(e) => updateChord({ root: e.target.value })}
+                              >
+                                {ROOTS.map((n) => (
+                                  <option key={n}>{n}</option>
+                                ))}
+                              </select>
+                            </label>
+                            <label>
+                              Tip acord
+                              <select
+                                aria-label="Tip acord"
+                                value={selected.quality}
+                                disabled={changesDisabled}
+                                onChange={(e) =>
+                                  updateChord({ quality: e.target.value as Quality, inversion: 0 })
+                                }
+                              >
+                                {QUALITIES.map((q) => (
+                                  <option value={q.suffix} key={q.suffix}>
+                                    {q.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <label>
+                              Inversiune
+                              <select
+                                aria-label="Inversiune"
+                                value={selected.inversion}
+                                disabled={changesDisabled}
+                                onChange={(e) => updateChord({ inversion: Number(e.target.value) })}
+                              >
+                                {built.notes.map((_, i) => (
+                                  <option key={i} value={i}>
+                                    {i === 0 ? 'Poziție fundamentală' : `Inversiunea ${i}`}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <label>
+                              Durată
+                              <select
+                                aria-label="Durată"
+                                value={selected.beats}
+                                disabled={changesDisabled}
+                                onChange={(e) => updateChord({ beats: Number(e.target.value) })}
+                              >
+                                {Array.from({ length: 16 }, (_, i) => (
+                                  <option key={i} value={i + 1}>
+                                    {i + 1} {i === 0 ? 'timp' : 'timpi'}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <label>
+                              Secțiune
+                              <input
+                                aria-label="Secțiune"
+                                value={selected.section}
+                                maxLength={24}
+                                disabled={changesDisabled}
+                                onChange={(e) => updateChord({ section: e.target.value })}
+                              />
+                            </label>
+                          </div>
+                        </div>
+                        <div className="chord-notes">
+                          <span>NOTELE ACORDULUI</span>
+                          {built.notes.map((n) => (
+                            <span className="note-pill" key={n}>
+                              {n}
+                            </span>
+                          ))}
+                          <span className="formula">
+                            {QUALITIES.find((q) => q.suffix === selected.quality)?.formula}
+                          </span>
+                        </div>
+                      </section>
+                    ) : (
+                      <div className="panel empty-state">
+                        <Music2 size={30} />
+                        <h2>Prima idee începe cu un acord.</h2>
+                        <p>Adaugă un acord pentru a explora armonia și pozițiile pe chitară.</p>
+                        <button
+                          className="button dark"
+                          onClick={() => setModal('add')}
+                          disabled={!loaded}
+                        >
+                          <Plus size={16} /> Adaugă acord
+                        </button>
+                      </div>
+                    )}
+                    {selected && (
+                      <section className="panel fretboard-panel" id="fretboard">
+                        <div className="panel-header">
+                          <div className="section-title">
+                            <span className="section-icon">
+                              <Guitar size={19} />
+                            </span>
+                            <h2>Pe griful chitarei</h2>
+                          </div>
+                          <span className="subtle-badge">E A D G B E</span>
+                        </div>
+                        <div className="fretboard-toolbar">
+                          <span>
+                            <strong>{selectedSymbol}</strong>{' '}
+                            <span className="muted">/ acordaj standard</span>
+                          </span>
+                          <label className="switch-label">
+                            <input
+                              type="checkbox"
+                              checked={scaleVisible}
+                              onChange={(e) => setScaleVisible(e.target.checked)}
+                            />{' '}
+                            Arată gama
+                          </label>
+                        </div>
+                        <Fretboard
+                          chord={selected}
+                          voicing={showVoicing ? voicing : undefined}
+                          scaleNotes={scaleVisible ? keyNotes(project.key) : []}
+                          onNote={(midi) => {
+                            if (!playing) preview([midi]);
+                          }}
+                        />
+                        <div className="fretboard-legend">
+                          <span>
+                            <i className="legend-dot lime" /> Fundamentală
+                          </span>
+                          <span>
+                            <i className="legend-dot note" /> Notă din acord
+                          </span>
+                          <span>
+                            <i className="legend-ring" /> Poziție selectată
+                          </span>
+                          <span className="fret-hint">Atinge o notă pentru a o asculta</span>
+                        </div>
+                        <div className="voicing-controls">
+                          <div>
+                            <span className="mini-label">VOICE LEADING</span>
+                            <p>
+                              {previous
+                                ? 'Poziții ordonate după deplasarea față de acordul anterior.'
+                                : 'Poziții ordonate după întindere și registru.'}
+                            </p>
+                          </div>
+                          {voicing ? (
+                            <div className="voicing-choice">
+                              <label className="voicing-toggle">
+                                <input
+                                  type="checkbox"
+                                  checked={showVoicing}
+                                  onChange={(e) => setShowVoicing(e.target.checked)}
+                                />
+                                Poziție
+                              </label>
+                              <IconButton
+                                label="Poziția anterioară"
+                                onClick={() => setVoicingIndex((i) => Math.max(0, i - 1))}
+                                disabled={voicingIndex === 0}
+                              >
+                                <ArrowLeft size={15} />
+                              </IconButton>
+                              <span>
+                                {voicingIndex + 1}/{voicings.length}
+                              </span>
+                              <IconButton
+                                label="Poziția următoare"
+                                onClick={() =>
+                                  setVoicingIndex((i) => Math.min(voicings.length - 1, i + 1))
+                                }
+                                disabled={voicingIndex >= voicings.length - 1}
+                              >
+                                <ArrowRight size={15} />
+                              </IconButton>
+                              <button
+                                className="button compact"
+                                disabled={playing}
+                                onClick={() => preview(voicingMidi(voicing))}
+                              >
+                                <Volume2 size={15} />
+                                <span>{voicing.map((f) => (f === null ? '×' : f)).join(' ')}</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="muted">Nicio poziție în limitele curente.</span>
+                          )}
+                        </div>
+                        <p className="voicing-disclaimer">
+                          Sugestii geometrice, tastele 0–12; digitarea și confortul trebuie
+                          verificate pe instrument.
+                        </p>
+                      </section>
+                    )}
+                  </div>
+                  <aside className="insight-column" aria-label="Analiză și recomandări">
+                    <section className="panel analysis-panel">
                       <div className="panel-header">
                         <div className="section-title">
                           <span className="section-icon">
-                            <Guitar size={19} />
+                            <BookOpen size={18} />
                           </span>
-                          <h2>Pe griful chitarei</h2>
+                          <h2>Înțelege armonia</h2>
                         </div>
-                        <span className="subtle-badge">E A D G B E</span>
                       </div>
-                      <div className="fretboard-toolbar">
-                        <span>
-                          <strong>{selectedSymbol}</strong>{' '}
-                          <span className="muted">/ acordaj standard</span>
-                        </span>
-                        <label className="switch-label">
-                          <input
-                            type="checkbox"
-                            checked={scaleVisible}
-                            onChange={(e) => setScaleVisible(e.target.checked)}
-                          />{' '}
-                          Arată gama
-                        </label>
-                      </div>
-                      <Fretboard
-                        chord={selected}
-                        voicing={showVoicing ? voicing : undefined}
-                        scaleNotes={scaleVisible ? keyNotes(project.key) : []}
-                        onNote={(midi) => {
-                          if (!playing) preview([midi]);
-                        }}
-                      />
-                      <div className="fretboard-legend">
-                        <span>
-                          <i className="legend-dot lime" /> Fundamentală
-                        </span>
-                        <span>
-                          <i className="legend-dot note" /> Notă din acord
-                        </span>
-                        <span>
-                          <i className="legend-ring" /> Poziție selectată
-                        </span>
-                        <span className="fret-hint">Atinge o notă pentru a o asculta</span>
-                      </div>
-                      <div className="voicing-controls">
-                        <div>
-                          <span className="mini-label">VOICE LEADING</span>
-                          <p>
-                            {previous
-                              ? 'Poziții ordonate după deplasarea față de acordul anterior.'
-                              : 'Poziții ordonate după întindere și registru.'}
-                          </p>
-                        </div>
-                        {voicing ? (
-                          <div className="voicing-choice">
-                            <label className="voicing-toggle">
-                              <input
-                                type="checkbox"
-                                checked={showVoicing}
-                                onChange={(e) => setShowVoicing(e.target.checked)}
-                              />
-                              Poziție
-                            </label>
-                            <IconButton
-                              label="Poziția anterioară"
-                              onClick={() => setVoicingIndex((i) => Math.max(0, i - 1))}
-                              disabled={voicingIndex === 0}
-                            >
-                              <ArrowLeft size={15} />
-                            </IconButton>
+                      {analysis && selected ? (
+                        <div className="insight-body">
+                          <div className="analysis-key">
                             <span>
-                              {voicingIndex + 1}/{voicings.length}
+                              ÎN {project.key.root}{' '}
+                              {project.key.mode === 'major' ? 'MAJOR' : 'MINOR'}
                             </span>
-                            <IconButton
-                              label="Poziția următoare"
-                              onClick={() =>
-                                setVoicingIndex((i) => Math.min(voicings.length - 1, i + 1))
+                            <span className="tiny-dot" />
+                          </div>
+                          <div className="function-display">
+                            <strong>{analysis.roman}</strong>
+                            <span
+                              className={
+                                analysis.diatonic ? 'function-badge' : 'function-badge borrowed'
                               }
-                              disabled={voicingIndex >= voicings.length - 1}
                             >
-                              <ArrowRight size={15} />
-                            </IconButton>
-                            <button
-                              className="button compact"
-                              disabled={playing}
-                              onClick={() => preview(voicingMidi(voicing))}
-                            >
-                              <Volume2 size={15} />
-                              <span>{voicing.map((f) => (f === null ? '×' : f)).join(' ')}</span>
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="muted">Nicio poziție în limitele curente.</span>
-                        )}
-                      </div>
-                      <p className="voicing-disclaimer">
-                        Sugestii geometrice, tastele 0–12; digitarea și confortul trebuie verificate
-                        pe instrument.
-                      </p>
-                    </section>
-                  )}
-                </div>
-                <aside className="insight-column" aria-label="Analiză și recomandări">
-                  <section className="panel analysis-panel">
-                    <div className="panel-header">
-                      <div className="section-title">
-                        <span className="section-icon">
-                          <BookOpen size={18} />
-                        </span>
-                        <h2>Înțelege armonia</h2>
-                      </div>
-                    </div>
-                    {analysis && selected ? (
-                      <div className="insight-body">
-                        <div className="analysis-key">
-                          <span>
-                            ÎN {project.key.root} {project.key.mode === 'major' ? 'MAJOR' : 'MINOR'}
-                          </span>
-                          <span className="tiny-dot" />
-                        </div>
-                        <div className="function-display">
-                          <strong>{analysis.roman}</strong>
-                          <span
-                            className={
-                              analysis.diatonic ? 'function-badge' : 'function-badge borrowed'
-                            }
-                          >
-                            {analysis.function}
-                          </span>
-                        </div>
-                        <p>{analysis.explanation}</p>
-                        <div className="analysis-sequence">
-                          {project.chords.map((c, i) => (
-                            <span key={c.id} className={i === selectedIndex ? 'current' : ''}>
-                              {i > 0 && <span className="sequence-arrow">→</span>}
-                              {analyze(c, project.key).roman}
+                              {analysis.function}
                             </span>
-                          ))}
-                        </div>
-                        <div className="insight-footnote">
-                          <CircleHelp size={14} />
-                          <span>
-                            Analiză bazată pe reguli, fără AI. Contextul muzical poate schimba
-                            funcția.
-                          </span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="insight-body muted">Selectează un acord pentru analiză.</div>
-                    )}
-                  </section>
-                  <section className="panel scales-panel">
-                    <div className="panel-header">
-                      <div className="section-title">
-                        <span className="section-icon">
-                          <Waves size={18} />
-                        </span>
-                        <h2>Game de explorat</h2>
-                      </div>
-                      <span className="subtle-badge">{scales.length}</span>
-                    </div>
-                    <div className="insight-body">
-                      <p className="intro-text">
-                        Puncte de plecare pentru improvizație pe{' '}
-                        {selectedSymbol || 'acordul selectat'}.
-                      </p>
-                      {scales.map((scale, i) => (
-                        <div className="scale-suggestion" key={scale.name}>
-                          <div>
-                            <strong>{scale.name}</strong>
-                            {i === 0 && <span className="recommended">POTRIVIRE</span>}
                           </div>
-                          <p>{scale.notes.join(' · ')}</p>
-                          <small>{scale.reason}</small>
+                          <p>{analysis.explanation}</p>
+                          <div className="analysis-sequence">
+                            {project.chords.map((c, i) => (
+                              <span key={c.id} className={i === selectedIndex ? 'current' : ''}>
+                                {i > 0 && <span className="sequence-arrow">→</span>}
+                                {analyze(c, project.key).roman}
+                              </span>
+                            ))}
+                          </div>
+                          <div className="insight-footnote">
+                            <CircleHelp size={14} />
+                            <span>
+                              Analiză bazată pe reguli, fără AI. Contextul muzical poate schimba
+                              funcția.
+                            </span>
+                          </div>
                         </div>
-                      ))}
-                      {!scales.length && (
-                        <p className="muted">Nu există sugestii pentru selecția curentă.</p>
+                      ) : (
+                        <div className="insight-body muted">
+                          Selectează un acord pentru analiză.
+                        </div>
                       )}
-                    </div>
-                  </section>
-                  <section className="panel substitutions-panel">
-                    <div className="panel-header">
-                      <div className="section-title">
-                        <span className="section-icon">
-                          <Sparkles size={17} />
-                        </span>
-                        <h2>O altă culoare</h2>
+                    </section>
+                    <section className="panel scales-panel">
+                      <div className="panel-header">
+                        <div className="section-title">
+                          <span className="section-icon">
+                            <Waves size={18} />
+                          </span>
+                          <h2>Game de explorat</h2>
+                        </div>
+                        <span className="subtle-badge">{scales.length}</span>
                       </div>
-                    </div>
-                    <div className="insight-body">
-                      <p className="intro-text">
-                        Încearcă o alternativă. Ascultă schimbarea în context.
-                      </p>
-                      {selected &&
-                        substitutions(selected).map((s) => (
-                          <div className="substitution" key={s.chord.root + s.chord.quality}>
+                      <div className="insight-body">
+                        <p className="intro-text">
+                          Puncte de plecare pentru improvizație pe{' '}
+                          {selectedSymbol || 'acordul selectat'}.
+                        </p>
+                        {scales.map((scale, i) => (
+                          <div className="scale-suggestion" key={scale.name}>
                             <div>
-                              <strong>{buildChord(s.chord).symbol}</strong>
-                              <div>
-                                <IconButton
-                                  label={`Ascultă alternativa ${buildChord(s.chord).symbol}`}
-                                  disabled={playing}
-                                  onClick={() => preview(buildChord(s.chord).midi)}
-                                >
-                                  <Volume2 size={15} />
-                                </IconButton>
-                                <IconButton
-                                  label={`Aplică alternativa ${buildChord(s.chord).symbol}`}
-                                  disabled={changesDisabled}
-                                  onClick={() => updateChord(s.chord)}
-                                >
-                                  <ArrowUp size={16} />
-                                </IconButton>
-                              </div>
+                              <strong>{scale.name}</strong>
+                              {i === 0 && <span className="recommended">POTRIVIRE</span>}
                             </div>
-                            <p>{s.reason}</p>
+                            <p>{scale.notes.join(' · ')}</p>
+                            <small>{scale.reason}</small>
                           </div>
                         ))}
-                      {selected && !substitutions(selected).length && (
-                        <p className="muted">Explorează inversiunile acestui acord în editor.</p>
-                      )}
+                        {!scales.length && (
+                          <p className="muted">Nu există sugestii pentru selecția curentă.</p>
+                        )}
+                      </div>
+                    </section>
+                    <section className="panel substitutions-panel">
+                      <div className="panel-header">
+                        <div className="section-title">
+                          <span className="section-icon">
+                            <Sparkles size={17} />
+                          </span>
+                          <h2>O altă culoare</h2>
+                        </div>
+                      </div>
+                      <div className="insight-body">
+                        <p className="intro-text">
+                          Încearcă o alternativă. Ascultă schimbarea în context.
+                        </p>
+                        {selected &&
+                          substitutions(selected).map((s) => (
+                            <div className="substitution" key={s.chord.root + s.chord.quality}>
+                              <div>
+                                <strong>{buildChord(s.chord).symbol}</strong>
+                                <div>
+                                  <IconButton
+                                    label={`Ascultă alternativa ${buildChord(s.chord).symbol}`}
+                                    disabled={playing}
+                                    onClick={() => preview(buildChord(s.chord).midi)}
+                                  >
+                                    <Volume2 size={15} />
+                                  </IconButton>
+                                  <IconButton
+                                    label={`Aplică alternativa ${buildChord(s.chord).symbol}`}
+                                    disabled={changesDisabled}
+                                    onClick={() => updateChord(s.chord)}
+                                  >
+                                    <ArrowUp size={16} />
+                                  </IconButton>
+                                </div>
+                              </div>
+                              <p>{s.reason}</p>
+                            </div>
+                          ))}
+                        {selected && !substitutions(selected).length && (
+                          <p className="muted">Explorează inversiunile acestui acord în editor.</p>
+                        )}
+                      </div>
+                    </section>
+                    <div className="studio-note">
+                      <span>✦</span>
+                      <p>
+                        Lasă urechea să decidă.
+                        <br />
+                        <strong>Teoria îți arată posibilitățile.</strong>
+                      </p>
                     </div>
+                  </aside>
+                </div>
+              ) : (
+                <>
+                  <section className="panel shared-transport" aria-label="Transport compoziție">
+                    {transport}
                   </section>
-                  <div className="studio-note">
-                    <span>✦</span>
-                    <p>
-                      Lasă urechea să decidă.
-                      <br />
-                      <strong>Teoria îți arată posibilitățile.</strong>
-                    </p>
-                  </div>
-                </aside>
-              </div>
+                  {workspaceTab === 'solo' ? (
+                    <SoloComposer
+                      key={project.id}
+                      project={project}
+                      disabled={changesDisabled}
+                      onChange={changeMelody}
+                      onPreview={preview}
+                    />
+                  ) : (
+                    <BackingStudio
+                      project={project}
+                      disabled={changesDisabled}
+                      exporting={exporting}
+                      onChange={(backing) => update((p) => ({ ...p, backing }))}
+                      onMidi={() => exportAudio('midi')}
+                      onWav={() => exportAudio('wav')}
+                    />
+                  )}
+                </>
+              )}
               <footer className="workspace-footer">
                 <span>
                   <span className="status-dot" /> Teorie deterministă · Date locale · Fără cloud
@@ -1418,9 +1548,9 @@ export default function App() {
             </p>
             <h3>Disponibil acum</h3>
             <p>
-              Armonie, fretboard, playback sintetizat și bibliotecă locală. Audio multitrack, AI și
-              pachetul Windows nativ sunt etape viitoare. Înregistrarea chitarei nu este inclusă în
-              această versiune.
+              Armonie, fretboard, editor melodic, acompaniament sintetizat, mixaj și export
+              MIDI/WAV. Audio multitrack, AI și pachetul Windows nativ sunt etape viitoare.
+              Înregistrarea chitarei nu este inclusă în această versiune.
             </p>
             <h3>Offline pe iPhone</h3>
             <p>
