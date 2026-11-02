@@ -8,7 +8,8 @@ synthesized playback and a local project library. No account or API key is neede
 
 Download the repository ZIP from GitHub and extract it completely. In the
 `portable` folder, open `Guitar-Composer-Studio.html` in Microsoft Edge or Google
-Chrome. This single file includes all application code and styles; it does not
+Chrome. Opening the root `index.html` from disk also forwards to that portable
+file. This single file includes all application code and styles; it does not
 need npm or a local server. Export your projects as backups before moving the
 file or switching browsers. The portable edition is a browser application, not
 a native Windows installer. To regenerate it from source, run `npm run build:portable`.

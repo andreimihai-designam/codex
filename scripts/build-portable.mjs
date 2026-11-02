@@ -38,6 +38,7 @@ const styles = bundle.output.filter(
 if (!htmlAsset || scripts.length !== 1 || !styles.length)
   throw new Error('Portable build requires one self-contained script and styles.');
 let html = String(htmlAsset.source)
+  .replace('<html lang="ro">', '<html lang="ro" data-portable>')
   .replace(/<script\b[^>]*\bsrc=[^>]*><\/script>/gi, '')
   .replace(/<link\b[^>]*>/gi, '');
 const css = styles

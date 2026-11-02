@@ -62,3 +62,13 @@ registration. The normal HTTPS PWA remains separate. Local storage behavior is
 browser/file-origin dependent; export backups before moving the HTML file.
 Prepare a separate GitHub delivery branch to make the project accessible outside
 the cloud workspace; do not overwrite the main branch.
+
+## 2026-11-02 — Source index offline launcher
+
+The user's actual blank-page address was the root source `index.html` opened
+with `file://`, rather than the bundled application. Add an early local-file
+redirect and visible fallback link. Mark the generated portable document so
+it never redirects recursively. Hosted/dev pages retain the normal entry point.
+Regression tests cover the reported D: drive path, encoded spaces, and the
+no-redirect cases. This identifies the reported source-entry failure; it does
+not establish a browser bug in the portable build.

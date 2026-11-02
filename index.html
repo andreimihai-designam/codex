@@ -11,9 +11,24 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <title>Guitar Composer Studio</title>
+    <script id="offline-launcher">
+      if (
+        window.location.protocol === 'file:' &&
+        !document.documentElement.hasAttribute('data-portable')
+      ) {
+        window.location.replace(
+          new URL('./portable/Guitar-Composer-Studio.html', window.location.href).href,
+        );
+      }
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <p style="font: 16px system-ui; padding: 24px">
+        Opening Guitar Composer Studio… If it does not start,
+        <a href="./portable/Guitar-Composer-Studio.html">open the offline app</a>.
+      </p>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
