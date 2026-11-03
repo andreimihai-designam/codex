@@ -68,3 +68,20 @@ universal model accuracy are not implied by passing browser/contract tests.
   requests or microphone requests occurred.
 - Physical iPhone testing remains outside this Linux/Chromium environment. Branch
   publication alone does not establish the state of the public Pages deployment.
+
+## v0.6.1 release activation and full-progression repair — 2026-11-03
+
+- 68 unit tests passed in 11 files; production/PWA, portable HTML and both ZIPs built.
+- Chord-guidance and offline portfolio Chromium regressions passed.
+- `python3 tests/browser_update_migration.py` passed using the real v0.5 Web ZIP
+  (source commit 62ac9ac) as the initial /codex/ deployment. It reproduced the
+  mixed Gm11–Am7–Dm7–G7 progression in D minor, retained the saved project through
+  service-worker replacement without clearing browser data, and verified no
+  stranded waiting worker remained.
+- Same-key regeneration produced Dm7–Bbmaj7–Gm7–Am7. Subsequent root and mode changes
+  replaced all four chord slots, with upgraded offline reload retaining the result.
+- A second real worker update displayed the reload action; it was disabled during
+  playback and enabled after stop with the project saved. No automatic reload
+  interrupted the current-version session.
+- These are local Chromium deployment tests; they do not verify the public Pages
+  rollout or establish the cache state of the user's browser from a screenshot.

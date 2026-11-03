@@ -1,6 +1,6 @@
 # Guitar Composer Studio
 
-A local-first guitar harmony workspace. Version 0.6 includes a
+A local-first guitar harmony workspace. Version 0.6.1 includes a
 Romanian-language Harmony Studio, deterministic theory, an interactive fretboard,
 a chord-note melody editor, synthesized backing tracks, a four-part mixer,
 MIDI/WAV export, browser audio recording/editing, an autonomous music-rule advisor
@@ -17,13 +17,19 @@ Chromatic chords are still allowed through manual chord editing. Changing either
 the chosen key: I–vi–ii–V in major, i–VI–iv–v in natural minor, using seventh chords.
 Existing slot count, durations and sections are preserved; an empty progression
 gets four chords. The previous arrangement is saved to **Istoric** before replacement.
-Melody and audio tracks are preserved, not automatically transposed.
+Melody and audio tracks are preserved, not automatically transposed. If a saved
+project has mixed chords from an earlier version, **Regenerează progresia** replaces
+all chord slots in the currently selected key, with a history backup.
 
 In **Solo & Melody**, choose any progression chord to see its highlighted note names.
 There is no piano keyboard. The grid shows note lanes for the selected chord;
 existing melody notes outside it remain visible for editing. Click a highlighted
 note chip to hear it. Green cells follow the actual chord at that time, including
 changes within one measure. Existing projects and exports remain compatible.
+
+The access banner shows the exact app version. Web updates activate their new
+cache; an open current-version session offers **Încarcă actualizarea** after local
+saving, with reload disabled during playback, recording or export.
 
 ## Open or present the app
 

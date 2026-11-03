@@ -216,8 +216,8 @@ export function addRevision(project: Project): Project {
   return { ...project, revisions: [...project.revisions, revision].slice(-30) };
 }
 /** Key changes regenerate harmony atomically and retain a restorable prior arrangement. */
-export function regenerateProgression(project: Project, key: Key): Project {
-  if (project.key.root === key.root && project.key.mode === key.mode) return project;
+export function regenerateProgression(project: Project, key: Key, force = false): Project {
+  if (!force && project.key.root === key.root && project.key.mode === key.mode) return project;
   const specs = generateKeyProgression(key, project.chords.length || 4);
   return {
     ...addRevision(project),

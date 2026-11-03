@@ -1,3 +1,4 @@
+import { version } from '../package.json';
 import {
   useEffect,
   useId,
@@ -200,6 +201,12 @@ function Fretboard({
 export default function App() {
   const [project, setProject] = useState<Project>(newProject);
   const [loaded, setLoaded] = useState(false);
+  const [updateReady, setUpdateReady] = useState(false);
+  useEffect(() => {
+    const ready = () => setUpdateReady(true);
+    window.addEventListener('gcs:update-ready', ready);
+    return () => window.removeEventListener('gcs:update-ready', ready);
+  }, []);
   const [storageState, setStorageState] = useState<'saving' | 'saved' | 'error'>('saving');
   const [selectedId, setSelectedId] = useState<string>('');
   const [view, setView] = useState<'studio' | 'library'>('studio');
@@ -345,8 +352,8 @@ export default function App() {
   }, [notice]);
   const update = (fn: (p: Project) => Project) =>
     setProject((p) => ({ ...fn(p), updatedAt: new Date().toISOString() }));
-  function changeKey(key: Key) {
-    update((p) => regenerateProgression(p, key));
+  function changeKey(key: Key, force = false) {
+    update((p) => regenerateProgression(p, key, force));
     setNotice(
       'Progresie generată în noua tonalitate. Varianta anterioară este în Istoric. Melodia și pistele audio sunt păstrate.',
     );
@@ -794,7 +801,7 @@ export default function App() {
             <CircleHelp size={18} /> Ghidul studioului <span>↗</span>
           </button>
           <div className="sidebar-version">
-            GUITAR COMPOSER STUDIO <span>v0.6</span>
+            GUITAR COMPOSER STUDIO <span>v{version}</span>
           </div>
         </div>
       </aside>
@@ -868,10 +875,23 @@ export default function App() {
               </button>
             </div>
           </div>
+          {updateReady && (
+            <section className="portfolio-banner" role="status">
+              <p>O versiune nouă este disponibilă. Reîncarcă după salvarea proiectului.</p>
+              <button
+                className="button compact"
+                disabled={changesDisabled || storageState !== 'saved'}
+                onClick={() => window.location.reload()}
+              >
+                Încarcă actualizarea
+              </button>
+            </section>
+          )}
           <section className="portfolio-banner" aria-label="Acces independent">
             <span className="status-dot" />
             <p>
-              <strong>Studio independent, fără cont.</strong> Compune și prezintă direct din
+              <strong>Studio independent, fără cont.</strong>{' '}
+              <span className="app-version">v{version}</span> Compune și prezintă direct din
               browser. Recomandările locale funcționează fără Ollama sau ChatGPT; AI-ul extern este
               opțional.
             </p>
@@ -1086,11 +1106,21 @@ export default function App() {
                           </select>
                         </div>
                       </div>
-                      <p className="key-generation-hint">
-                        Schimbarea tonalității generează automat acorduri diatonice. Progresia
-                        anterioară se păstrează în Istoric.
-                        {project.key.mode === 'minor' && ' Minor natural: i–VI–iv–v.'}
-                      </p>
+                      <div className="key-generation-hint">
+                        <p>
+                          Schimbarea tonalității actualizează automat toate cele{' '}
+                          {project.chords.length || 4} acorduri. Progresia anterioară se păstrează
+                          în Istoric.
+                          {project.key.mode === 'minor' && ' Minor natural: i–VI–iv–v.'}
+                        </p>
+                        <button
+                          className="button compact"
+                          disabled={changesDisabled}
+                          onClick={() => changeKey(project.key, true)}
+                        >
+                          Regenerează progresia
+                        </button>
+                      </div>
                       <div
                         className="chord-strip"
                         tabIndex={0}

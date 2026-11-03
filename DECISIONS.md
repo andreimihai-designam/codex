@@ -189,3 +189,20 @@ sections; generate four slots for an empty progression. Before replacement, save
 the complete previous arrangement to history. Melody, audio and backing settings
 are preserved, without claiming automatic audio or melody transposition. Changing
 only a chord manually remains unrestricted by the key. Schema 3 is unchanged.
+
+## 2026-11-03 — Cached release upgrade and same-key regeneration
+
+User reports a mixed four-chord progression after requesting automatic key changes.
+Current root/mode handlers already replace the entire progression; the PWA was
+configured for prompt-based updates without a prompt UI, which can strand a new
+release in waiting. Do not claim the screenshot alone proves the user's cache state.
+
+Activate new service workers automatically and offer a visible reload action in
+current-version sessions, disabled until the project is saved and playback,
+recording/export are inactive. Show the full version in the access banner. Provide
+explicit same-key regeneration to repair mixed legacy progressions while preserving
+a history snapshot. Existing automatic key-change generation stays in place.
+
+Reproduce the actual v0.5 Web ZIP under /codex/, seed the screenshot's mixed
+progression, replace server files with the new build, and test worker activation,
+project retention, all-slot key/mode regeneration and offline reload.

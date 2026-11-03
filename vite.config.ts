@@ -5,7 +5,7 @@ export default defineConfig({
   base: './',
   plugins: [
     VitePWA({
-      registerType: 'prompt',
+      registerType: 'autoUpdate',
       manifest: {
         name: 'Guitar Composer Studio',
         short_name: 'Guitar Studio',

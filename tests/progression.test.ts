@@ -47,6 +47,19 @@ describe('key-driven progression generation', () => {
     expect(validateProject(JSON.parse(JSON.stringify(next)))).toEqual(next);
     expect(regenerateProgression(next, next.key)).toBe(next);
   });
+  it('regenerates every mixed slot in the screenshot, also when repairing the same key', () => {
+    const p = newProject();
+    p.key = { root: 'D', mode: 'minor' };
+    p.chords[0] = { ...p.chords[0], root: 'G', quality: 'm11' };
+    for (const force of [false, true]) {
+      const key = force ? p.key : { root: 'E', mode: 'minor' as const };
+      const next = regenerateProgression(p, key, force);
+      expect(next.chords.map((c) => buildChord(c).symbol)).toEqual(
+        force ? ['Dm7', 'Bbmaj7', 'Gm7', 'Am7'] : ['Em7', 'Cmaj7', 'Am7', 'Bm7'],
+      );
+      expect(next.revisions.at(-1)?.arrangement.chords).toEqual(p.chords);
+    }
+  });
   it('initializes an empty progression and bounds generation', () => {
     const p = regenerateProgression(newProject(false), { root: 'F', mode: 'minor' });
     expect(p.chords).toHaveLength(4);

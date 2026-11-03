@@ -4019,3 +4019,29 @@ textarea:focus-visible {
   justify-content: center;
   border-right: 1px solid #cbdab8;
 }
+
+.key-generation-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.key-generation-hint p {
+  flex: 1;
+  min-width: 200px;
+  margin: 0;
+}
+.key-generation-hint button {
+  flex-shrink: 0;
+}
+.app-version {
+  display: inline-block;
+  padding: 2px 6px;
+  margin-right: 4px;
+  background: #dfedce;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
