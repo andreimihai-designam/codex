@@ -1,6 +1,6 @@
 {
   "name": "Guitar Composer Studio",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "requiresAccount": false,
   "requiresOllama": false,
   "externalAi": "optional",
