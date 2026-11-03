@@ -1,3 +1,4 @@
+import { generateKeyProgression } from './progression';
 import { emptyAudio, validateAudio, type AudioSession } from './studio';
 import { defaultBacking, CHANNELS, type MelodyNote, type BackingSettings } from './composition';
 import { buildChord, ROOTS, type ChordSpec, type Key } from './theory';
@@ -213,6 +214,21 @@ export function addRevision(project: Project): Project {
     arrangement: structuredClone({ name, key, bpm, chords, melody, backing, audio }),
   };
   return { ...project, revisions: [...project.revisions, revision].slice(-30) };
+}
+/** Key changes regenerate harmony atomically and retain a restorable prior arrangement. */
+export function regenerateProgression(project: Project, key: Key): Project {
+  if (project.key.root === key.root && project.key.mode === key.mode) return project;
+  const specs = generateKeyProgression(key, project.chords.length || 4);
+  return {
+    ...addRevision(project),
+    key: { ...key },
+    chords: specs.map((spec, i) => ({
+      id: project.chords[i]?.id ?? crypto.randomUUID(),
+      beats: project.chords[i]?.beats ?? 4,
+      section: project.chords[i]?.section ?? 'A',
+      ...spec,
+    })),
+  };
 }
 export function parseProject(text: string): Project {
   if (text.length > 8_000_000) throw new Error('Fișierul depășește limita de 8 MB.');

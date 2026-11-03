@@ -173,3 +173,19 @@ remain editable for passing tones and chromatic composition. External AI is unch
 Validation covers extended/altered spelling, inversion/enharmonic pitch membership,
 timeline boundaries, project round-trip, interactive selection/editing/persistence
 and responsive layouts. Publish rebuilt standalone ZIP and Pages assets together.
+
+## 2026-11-03 — Note lanes and automatic key-driven harmony
+
+User explicitly requested removal of piano keys from Solo & Melody and actual
+progression regeneration when either key selector changes, followed by GitHub
+publication. Replace the keyboard with plain note-name lane labels and playable
+highlighted chord-note chips. Only selected-chord pitches appear as new-note lanes;
+existing melody notes in the current measure remain visible even outside the chord.
+Keep the timeline editing workflow and per-column harmonic guidance.
+
+A deterministic generator uses diatonic seventh chords: I–vi–ii–V for major and
+i–VI–iv–v for natural minor. Preserve progression length, slot IDs, durations and
+sections; generate four slots for an empty progression. Before replacement, save
+the complete previous arrangement to history. Melody, audio and backing settings
+are preserved, without claiming automatic audio or melody transposition. Changing
+only a chord manually remains unrestricted by the key. Schema 3 is unchanged.

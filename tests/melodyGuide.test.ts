@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { melodyChordGuides, guideAt, isChordTone } from '../src/core/melodyGuide';
+import { melodyChordGuides, guideAt, isChordTone, chordNoteLabel } from '../src/core/melodyGuide';
 import { newProject, validateProject } from '../src/core/project';
 import { buildChord } from '../src/core/theory';
 
@@ -27,6 +27,16 @@ describe('progression chord-tone guidance', () => {
       expect(isChordTone(midi, guide)).toBe(false);
     expect(isChordTone(61, undefined)).toBe(false);
     expect(melodyChordGuides({ chords: [] })).toEqual([]);
+  });
+  it('labels enharmonic note lanes in the correct octave', () => {
+    const p = newProject();
+    p.chords = [{ ...p.chords[0], root: 'G#', quality: 'maj7', inversion: 0 }];
+    const guide = melodyChordGuides(p)[0];
+    expect(chordNoteLabel(60, guide)).toBe('B#3');
+    expect(chordNoteLabel(68, guide)).toBe('G#4');
+    expect(chordNoteLabel(61, undefined)).toBe('C#4');
+    p.chords[0] = { ...p.chords[0], root: 'Cb', quality: '' };
+    expect(chordNoteLabel(59, melodyChordGuides(p)[0])).toBe('Cb4');
   });
   it('preserves newly supported extended and altered chords in saved projects', () => {
     const p = newProject();

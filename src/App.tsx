@@ -52,10 +52,12 @@ import {
   suggestScales,
   type ChordSpec,
   type Quality,
+  type Key,
 } from './core/theory';
 import { guitarVoicings, STRING_NAMES, TUNING, voicingMidi, type Voicing } from './core/guitar';
 import {
   addRevision,
+  regenerateProgression,
   newProject,
   parseProject,
   type Project,
@@ -343,6 +345,12 @@ export default function App() {
   }, [notice]);
   const update = (fn: (p: Project) => Project) =>
     setProject((p) => ({ ...fn(p), updatedAt: new Date().toISOString() }));
+  function changeKey(key: Key) {
+    update((p) => regenerateProgression(p, key));
+    setNotice(
+      'Progresie generată în noua tonalitate. Varianta anterioară este în Istoric. Melodia și pistele audio sunt păstrate.',
+    );
+  }
   function updateChord(patch: Partial<ProgressionChord>) {
     if (selected)
       update((p) => ({
@@ -786,7 +794,7 @@ export default function App() {
             <CircleHelp size={18} /> Ghidul studioului <span>↗</span>
           </button>
           <div className="sidebar-version">
-            GUITAR COMPOSER STUDIO <span>v0.5</span>
+            GUITAR COMPOSER STUDIO <span>v0.6</span>
           </div>
         </div>
       </aside>
@@ -1056,9 +1064,7 @@ export default function App() {
                             id="key-root"
                             value={project.key.root}
                             disabled={changesDisabled}
-                            onChange={(e) =>
-                              update((p) => ({ ...p, key: { ...p.key, root: e.target.value } }))
-                            }
+                            onChange={(e) => changeKey({ ...project.key, root: e.target.value })}
                           >
                             {ROOTS.map((n) => (
                               <option key={n}>{n}</option>
@@ -1069,10 +1075,10 @@ export default function App() {
                             value={project.key.mode}
                             disabled={changesDisabled}
                             onChange={(e) =>
-                              update((p) => ({
-                                ...p,
-                                key: { ...p.key, mode: e.target.value as 'major' | 'minor' },
-                              }))
+                              changeKey({
+                                ...project.key,
+                                mode: e.target.value as 'major' | 'minor',
+                              })
                             }
                           >
                             <option value="major">Major</option>
@@ -1080,6 +1086,11 @@ export default function App() {
                           </select>
                         </div>
                       </div>
+                      <p className="key-generation-hint">
+                        Schimbarea tonalității generează automat acorduri diatonice. Progresia
+                        anterioară se păstrează în Istoric.
+                        {project.key.mode === 'minor' && ' Minor natural: i–VI–iv–v.'}
+                      </p>
                       <div
                         className="chord-strip"
                         tabIndex={0}
@@ -1143,6 +1154,9 @@ export default function App() {
                               disabled={changesDisabled}
                               onChange={(e) => updateChord({ root: e.target.value })}
                             >
+                              {!ROOTS.includes(selected.root) && (
+                                <option value={selected.root}>{selected.root}</option>
+                              )}
                               {ROOTS.map((n) => (
                                 <option key={n}>{n}</option>
                               ))}
@@ -1257,6 +1271,9 @@ export default function App() {
                                 disabled={changesDisabled}
                                 onChange={(e) => updateChord({ root: e.target.value })}
                               >
+                                {!ROOTS.includes(selected.root) && (
+                                  <option value={selected.root}>{selected.root}</option>
+                                )}
                                 {ROOTS.map((n) => (
                                   <option key={n}>{n}</option>
                                 ))}

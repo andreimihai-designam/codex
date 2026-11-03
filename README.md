@@ -1,8 +1,8 @@
 # Guitar Composer Studio
 
-A local-first guitar harmony workspace. Version 0.5 includes a
+A local-first guitar harmony workspace. Version 0.6 includes a
 Romanian-language Harmony Studio, deterministic theory, an interactive fretboard,
-a piano-roll melody editor, synthesized backing tracks, a four-part mixer,
+a chord-note melody editor, synthesized backing tracks, a four-part mixer,
 MIDI/WAV export, browser audio recording/editing, an autonomous music-rule advisor
 and a local project library. External AI is optional. No ChatGPT account, Ollama
 installation or API key is required for the default portfolio workflow.
@@ -12,12 +12,18 @@ installation or API key is required for the default portfolio workflow.
 Select a progression card in **Harmony Studio**, then use **Fundamentală** and
 **Tip de acord** directly beneath the progression. All 28 chord types are available,
 including suspended, diminished, augmented, sixths, extensions and altered dominants.
-Chromatic chords are allowed regardless of the analysis key.
+Chromatic chords are still allowed through manual chord editing. Changing either
+**Tonalitate** or its major/minor mode automatically regenerates the progression in
+the chosen key: I–vi–ii–V in major, i–VI–iv–v in natural minor, using seventh chords.
+Existing slot count, durations and sections are preserved; an empty progression
+gets four chords. The previous arrangement is saved to **Istoric** before replacement.
+Melody and audio tracks are preserved, not automatically transposed.
 
-In **Solo & Melody**, choose any progression chord to see its notes and highlighted
-keys. Green grid cells follow the actual chord at that time, including changes
-within one measure. Notes outside the chord remain editable. Black piano keys are
-not highlighted by default. Existing projects and exports remain compatible.
+In **Solo & Melody**, choose any progression chord to see its highlighted note names.
+There is no piano keyboard. The grid shows note lanes for the selected chord;
+existing melody notes outside it remain visible for editing. Click a highlighted
+note chip to hear it. Green cells follow the actual chord at that time, including
+changes within one measure. Existing projects and exports remain compatible.
 
 ## Open or present the app
 

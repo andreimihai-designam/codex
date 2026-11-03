@@ -5,6 +5,7 @@ import {
   melodyChordGuides,
   guideAt,
   isChordTone,
+  chordNoteLabel,
   type MelodyChordGuide,
 } from '../core/melodyGuide';
 import type { Project } from '../core/project';
@@ -38,9 +39,17 @@ export default function SoloComposer({
     setFocusedChordId(chord.id);
     if (jump) setMeasure(Math.floor(chord.start / 4));
   }
-  const register = Array.from({ length: 24 }, (_, i) => (octave + 1) * 12 + 23 - i).filter(
-    (m) => m >= 40 && m <= 88,
-  );
+  const register = Array.from({ length: 24 }, (_, i) => (octave + 1) * 12 + 23 - i)
+    .filter((m) => m >= 40 && m <= 88)
+    .filter(
+      (midi) =>
+        !focused ||
+        isChordTone(midi, focused) ||
+        project.melody.some(
+          (n) =>
+            n.midi === midi && n.start < (measure + 1) * 4 && n.start + n.duration > measure * 4,
+        ),
+    );
   function changeSelected(patch: Partial<MelodyNote>) {
     if (selected)
       onChange(project.melody.map((n) => (n.id === selected.id ? { ...n, ...patch } : n)));
@@ -75,8 +84,8 @@ export default function SoloComposer({
           <h3>O melodie, notă cu notă.</h3>
           <p>
             Adaugă note pe grila de șaisprezecimi. Selectează o notă existentă pentru editare sau
-            ștergere. Ghidul urmărește acordurile progresiei; toate celulele rămân editabile,
-            inclusiv notele din afara acordului.
+            ștergere. Vezi rânduri cu notele acordului ales, fără claviatură de pian. Notele deja
+            compuse din afara acordului rămân vizibile pentru editare.
           </p>
         </div>
         <section className="melody-harmony-guide" aria-label="Note din acordurile progresiei">
@@ -108,9 +117,17 @@ export default function SoloComposer({
               <strong>{focused.symbol}</strong>
               <span>Note din acord:</span>
               {focused.notes.map((n) => (
-                <span className="note-pill" key={n}>
-                  {n}
-                </span>
+                <button
+                  className="note-pill chord-note-preview"
+                  key={n}
+                  aria-label={`Ascultă nota ${n} din ${focused.symbol}`}
+                  disabled={disabled}
+                  onClick={() =>
+                    onPreview([(octave + 1) * 12 + focused.pitchClasses[focused.notes.indexOf(n)]])
+                  }
+                >
+                  <Volume2 size={12} /> {n}
+                </button>
               ))}
             </div>
           ) : (
@@ -186,12 +203,12 @@ export default function SoloComposer({
           </label>
         </div>
         <div
-          className="piano-scroll"
+          className="melody-scroll"
           tabIndex={0}
           role="group"
           aria-label="Editor melodie cu derulare orizontală"
         >
-          <div className="piano-roll">
+          <div className="melody-note-grid">
             <div className="roll-ruler">
               <span>4/4</span>
               {Array.from({ length: 16 }, (_, s) => (
@@ -225,17 +242,18 @@ export default function SoloComposer({
                 key={midi}
                 className={`roll-row ${isChordTone(midi, focused) ? 'chord-note-row' : ''}`}
               >
-                <button
-                  className={`piano-key ${isChordTone(midi, focused) ? 'chord-member' : ''} ${focused?.root === midi % 12 ? 'chord-fundamental' : ''}`}
+                <span
+                  className={`note-lane-label ${isChordTone(midi, focused) ? 'chord-member' : 'existing-note-label'}`}
                   data-midi={midi}
                   data-chord-tone={isChordTone(midi, focused)}
-                  disabled={disabled}
-                  onClick={() => onPreview([midi])}
-                  aria-label={`Ascultă ${noteName(midi)}`}
+                  title={
+                    isChordTone(midi, focused)
+                      ? 'Notă din acordul selectat'
+                      : 'Notă existentă din melodie'
+                  }
                 >
-                  {noteName(midi)}
-                  {isChordTone(midi, focused) && <i title="Notă din acordul selectat" />}
-                </button>
+                  {chordNoteLabel(midi, focused)}
+                </span>
                 {Array.from({ length: 16 }, (_, step) => {
                   const beat = measure * 4 + step / 4;
                   const guide = stepGuides[step];
@@ -270,8 +288,8 @@ export default function SoloComposer({
         </div>
         <div className="roll-legend">
           <span>
-            <i className="legend-dot green" /> Verde: note din acordul coloanei. Claviatura
-            evidențiază acordul selectat.
+            <i className="legend-dot green" /> Verde: note din acordul coloanei. Rândurile afișează
+            notele acordului ales și notele deja compuse.
           </span>
           <span>
             Un pas = ¼ timp · {Math.ceil(arrangementBeats(project) / 4)} măsuri în proiect
@@ -433,6 +451,7 @@ export default function SoloComposer({
                   true,
                 );
                 setMeasure(0);
+                setFocusedChordId('');
                 setSelectedId('');
               }}
             >

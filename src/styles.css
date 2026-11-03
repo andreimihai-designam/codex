@@ -2355,14 +2355,14 @@ dialog::backdrop {
   white-space: nowrap;
   font-weight: 550;
 }
-.piano-scroll {
+.melody-scroll {
   overflow-x: auto;
   max-height: 650px;
   overflow-y: auto;
   scrollbar-width: thin;
   background: #f6f8f0;
 }
-.piano-roll {
+.melody-note-grid {
   min-width: 650px;
 }
 .roll-ruler,
@@ -2411,7 +2411,7 @@ dialog::backdrop {
 .roll-row {
   height: 27px;
 }
-.piano-key {
+.note-lane-label {
   position: sticky;
   left: 0;
   z-index: 2;
@@ -2426,17 +2426,6 @@ dialog::backdrop {
   align-items: center;
   justify-content: space-between;
 }
-.black-key .piano-key {
-  background: #2d4233;
-  color: #e0eacb;
-  border-color: #3b5240;
-}
-.piano-key i {
-  height: 4px;
-  width: 4px;
-  border-radius: 50%;
-  background: #9eb76e;
-}
 .roll-cell {
   border: 0;
   border-right: 1px solid #e0e7d4;
@@ -2447,9 +2436,6 @@ dialog::backdrop {
   font-size: 8px;
   color: #37502e;
   position: relative;
-}
-.black-key .roll-cell {
-  background: #f1f5e9;
 }
 .roll-cell.beat-boundary {
   border-left: 1px solid #c6d3b3;
@@ -3931,19 +3917,11 @@ textarea:focus-visible {
 .roll-chords > button:hover {
   background: #dcebc8;
 }
-.piano-key.chord-member {
+.note-lane-label.chord-member {
   background: #d4e7b5;
   color: #355321;
   font-weight: 650;
   border-bottom-color: #b9cf97;
-}
-.piano-key.chord-fundamental {
-  background: #527738;
-  color: #fff;
-  border-bottom-color: #42682a;
-}
-.piano-key.chord-fundamental i {
-  background: #d3eeaa;
 }
 .roll-cell.chord-target:not(.note-start):not(.note-sustain) {
   background: #edf5e1;
@@ -4015,4 +3993,29 @@ textarea:focus-visible {
   .roll-legend > span:first-child {
     max-width: 100%;
   }
+}
+
+.key-generation-hint {
+  margin: 0;
+  padding: 12px 20px 0;
+  color: #657754;
+  font-size: 11px;
+  line-height: 1.8;
+}
+.chord-note-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+.chord-note-preview:hover:not(:disabled) {
+  background: #cfe1b4;
+}
+.roll-row {
+  height: 38px;
+}
+.note-lane-label {
+  font-weight: 600;
+  justify-content: center;
+  border-right: 1px solid #cbdab8;
 }

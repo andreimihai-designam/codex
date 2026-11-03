@@ -49,3 +49,22 @@ universal model accuracy are not implied by passing browser/contract tests.
   requests, microphone requests or browser errors occurred in that test.
 - Responsive Chromium testing does not replace qualification on a physical iPhone.
   GitHub Pages activation and the public deployment are separate from these checks.
+
+## v0.6 note lanes and key regeneration — 2026-11-03
+
+- Production web/PWA, portable HTML and both ZIP releases rebuilt successfully.
+- 67 unit tests passed in 11 files. Generator tests cover every offered root in
+  major and natural minor, diatonic membership, deterministic output, preserved
+  slot metadata, previous-arrangement history, empty progressions and project
+  validation. Enharmonic note labels cover B#/Cb octave boundaries.
+- Chord-guidance Chromium regression covers absence of piano keys, selected-chord
+  note lanes, retained existing non-chord notes, every progression chord, changes
+  within a measure, automatic major/minor regeneration, history and persistence,
+  enharmonic roots/labels and 390/768/1440px layouts.
+- Composer Chromium regression passed for migration, create/edit/move/delete,
+  melody generation/history, transport, MIDI and nonzero stereo WAV export.
+- Portfolio regression passed for Pages-style subpath, demo playback, local
+  recommendations, downloadable standalone ZIP and offline PWA reload; no external
+  requests or microphone requests occurred.
+- Physical iPhone testing remains outside this Linux/Chromium environment. Branch
+  publication alone does not establish the state of the public Pages deployment.
