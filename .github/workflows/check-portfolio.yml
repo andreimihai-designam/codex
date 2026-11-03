@@ -1,0 +1,24 @@
+name: Check portfolio release
+on:
+  push:
+    branches: [feat/guitar-composer-studio]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build:release
+      - run: npm test
+      - uses: actions/upload-artifact@v4
+        with:
+          name: guitar-composer-studio-release
+          path: release/*.zip

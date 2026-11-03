@@ -1,0 +1,64 @@
+# Guitar Composer Studio
+
+Status: plan approved by the user on 2026-11-02; implementation in progress.
+
+## Goal
+
+A personal-use, local-first guitar composition workspace. Windows is the primary
+long-term platform; an iPhone PWA is the companion. Harmony Studio is the first
+priority. No mandatory accounts, cloud services, AI subscription, or recurring cost.
+
+## Approved MVP scope
+
+- Deterministic, independently tested chord construction and identification.
+- Progression editing: add, reorder, duplicate, delete, duration, sections.
+- Explicit-key harmonic analysis with alternative/contextual explanations.
+- Scale suggestions, rule-based substitutions, chord inversions.
+- Interactive standard-tuned six-string fretboard and heuristic voice leading.
+- Synthesized chord playback, tempo, looping, metronome and volume.
+- Local project library, manual history, validated JSON import/export.
+- Responsive, offline-capable web companion with manual file transfer.
+
+## Initial assumptions, stated to the user
+
+Romanian UI, international C–D–E notation, standard EADGBE tuning, 4/4,
+manual project transfer between devices. No device or driver has been specified.
+These defaults do not establish requirements for professional recording.
+
+## Delivery stages
+
+1. Theory core and project schema.
+2. Functional Harmony Studio web application.
+3. Guitar tools and responsive/offline companion.
+4. MVP stabilization and Windows desktop packaging.
+5. Windows audio-engine feasibility prototype with actual audio interface.
+6. Separately scoped solo/melody, backing tracks, optional AI and multitrack.
+
+## Portfolio delivery (2026-11-03)
+
+The user approved an autonomous portfolio demo with optional external AI and chose
+GitHub Pages activation from repository settings. v0.4 requires no ChatGPT,
+Ollama, account, terminal or model for composition/demo/local recommendations.
+A full example is synthesized locally; standalone and HTTPS deployment ZIPs are
+provided. User projects remain device-local and transfer via export/import.
+Actual public availability depends on the user enabling Pages for gh-pages/root.
+
+## Current boundaries
+
+Version 0.3 adds browser Audio Studio (capture/import, nondestructive clips,
+waveforms, shared transport/mix and complete audio backups) and an actual Ollama
+HTTP assistant with optional cloud API. v1/v2 projects migrate to v3. No model
+weights are bundled; the user chose Ollama and has not installed it yet.
+Native Tauri/SQLite packaging, direct ASIO access, automatic latency compensation,
+actual Scarlett/Windows qualification and automatic synchronization are pending.
+User hardware target: Windows 11 and Focusrite Scarlett 4i4. Generation/driver/RAM
+are unknown. Automated audio capture uses a simulated input; AI HTTP contract
+checks use mocked responses. Real hardware and model inference are not claimed.
+Acceptance and verification details are in README.md and docs/ARCHITECTURE.md.
+
+## Working location
+
+Current cloud checkout: /workspace/codex.
+Proposed Windows location: C:\Codex Projects\Projects\Guitar-Composer-Studio.
+Use the existing isolated task checkout. Do not create additional worktrees
+unless the user explicitly asks. Preserve the central AGENTS.md rules.
