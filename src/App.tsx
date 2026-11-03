@@ -68,7 +68,8 @@ import { exportMidi } from './core/midi';
 import SoloComposer from './components/SoloComposer';
 import BackingStudio from './components/BackingStudio';
 import AudioStudio from './components/AudioStudio';
-import AiAssistant from './components/AiAssistant';
+import CompositionAssistant from './components/CompositionAssistant';
+import { showcaseProject } from './services/showcase';
 import { validateAudio, type AudioSession } from './core/studio';
 import { applyAssistantReply, type AssistantReply } from './core/assistant';
 import { audioAssetIds, exportBundle, importBundle } from './services/projectBundle';
@@ -205,6 +206,7 @@ export default function App() {
   );
   const [exporting, setExporting] = useState(false);
   const [mediaBusy, setMediaBusy] = useState(false);
+  const navigationLocked = mediaBusy || exporting;
   const [audioCursor, setAudioCursor] = useState(0);
   const cursorRef = useRef(0);
   cursorRef.current = audioCursor;
@@ -212,7 +214,7 @@ export default function App() {
     workspaceTab === 'audio'
       ? 'Audio Studio'
       : workspaceTab === 'ai'
-        ? 'Asistent AI'
+        ? 'Asistent de compoziție'
         : workspaceTab === 'solo'
           ? 'Solo & Melody'
           : workspaceTab === 'backing'
@@ -401,7 +403,7 @@ export default function App() {
   }
   function applyAi(reply: AssistantReply, parts: { chords: boolean; melody: boolean }) {
     update((p) => ({ ...applyAssistantReply(addRevision(p), reply, parts) }));
-    setNotice('Propunerea AI a fost aplicată. Starea anterioară este în Istoric.');
+    setNotice('Propunerea a fost aplicată. Starea anterioară este în Istoric.');
   }
   async function preview(midi: number[]) {
     try {
@@ -450,6 +452,27 @@ export default function App() {
       setNotice(
         'Biblioteca nu poate fi deschisă: salvarea locală a eșuat. Exportă proiectul înainte de a continua.',
       );
+    }
+  }
+  async function openDemo() {
+    if (changesDisabled) return;
+    stop();
+    setExporting(true);
+    try {
+      await persistCurrent();
+      const demo = await showcaseProject();
+      await saveProject(demo);
+      setProject(demo);
+      setSelectedId('');
+      setView('studio');
+      setWorkspaceTab('harmony');
+      setNotice(
+        'Demo complet pregătit local: acorduri, melodie, backing și o pistă originală sintetizată.',
+      );
+    } catch (e) {
+      setNotice(e instanceof Error ? e.message : 'Demo-ul nu a putut fi pregătit.');
+    } finally {
+      setExporting(false);
     }
   }
   async function createProject() {
@@ -651,7 +674,7 @@ export default function App() {
           className="brand"
           onClick={(e) => {
             e.preventDefault();
-            if (mediaBusy) return;
+            if (navigationLocked) return;
             setView('studio');
             setWorkspaceTab('harmony');
           }}
@@ -671,7 +694,7 @@ export default function App() {
             className={
               view === 'studio' && workspaceTab === 'harmony' ? 'nav-item active' : 'nav-item'
             }
-            disabled={mediaBusy}
+            disabled={navigationLocked}
             onClick={() => {
               setView('studio');
               setWorkspaceTab('harmony');
@@ -681,7 +704,7 @@ export default function App() {
           </button>
           <button
             className="nav-item"
-            disabled={mediaBusy}
+            disabled={navigationLocked}
             onClick={() => {
               setView('studio');
               setWorkspaceTab('harmony');
@@ -699,7 +722,7 @@ export default function App() {
           <button
             className={view === 'library' ? 'nav-item active' : 'nav-item'}
             onClick={openLibrary}
-            disabled={!loaded || mediaBusy}
+            disabled={!loaded || navigationLocked}
           >
             <Library size={19} /> Biblioteca mea
           </button>
@@ -707,7 +730,7 @@ export default function App() {
             className={
               view === 'studio' && workspaceTab === 'solo' ? 'nav-item active' : 'nav-item'
             }
-            disabled={mediaBusy}
+            disabled={navigationLocked}
             onClick={() => {
               setView('studio');
               setWorkspaceTab('solo');
@@ -719,7 +742,7 @@ export default function App() {
             className={
               view === 'studio' && workspaceTab === 'backing' ? 'nav-item active' : 'nav-item'
             }
-            disabled={mediaBusy}
+            disabled={navigationLocked}
             onClick={() => {
               setView('studio');
               setWorkspaceTab('backing');
@@ -731,7 +754,7 @@ export default function App() {
             className={
               view === 'studio' && workspaceTab === 'audio' ? 'nav-item active' : 'nav-item'
             }
-            disabled={mediaBusy}
+            disabled={navigationLocked}
             onClick={() => {
               setView('studio');
               setWorkspaceTab('audio');
@@ -742,14 +765,14 @@ export default function App() {
           </button>
           <button
             className={view === 'studio' && workspaceTab === 'ai' ? 'nav-item active' : 'nav-item'}
-            disabled={mediaBusy}
+            disabled={navigationLocked}
             onClick={() => {
               setView('studio');
               setWorkspaceTab('ai');
             }}
           >
             <Sparkles size={19} />
-            Asistent AI
+            Asistent
           </button>
         </nav>
         <div className="sidebar-bottom">
@@ -763,7 +786,7 @@ export default function App() {
             <CircleHelp size={18} /> Ghidul studioului <span>↗</span>
           </button>
           <div className="sidebar-version">
-            GUITAR COMPOSER STUDIO <span>v0.3</span>
+            GUITAR COMPOSER STUDIO <span>v0.4</span>
           </div>
         </div>
       </aside>
@@ -809,7 +832,7 @@ export default function App() {
                   ? workspaceTab === 'audio'
                     ? 'Înregistrează chitara și construiește un aranjament audio local.'
                     : workspaceTab === 'ai'
-                      ? 'Explorează idei cu un model local. Tu alegi ce intră în proiect.'
+                      ? 'Recomandări muzicale locale, fără instalări. AI extern doar dacă îl alegi.'
                       : workspaceTab === 'solo'
                         ? 'Transformă armonia într-o melodie. Compune, ascultă și rafinează.'
                         : workspaceTab === 'backing'
@@ -818,10 +841,38 @@ export default function App() {
                   : 'Un loc pentru fiecare idee, de la prima schiță la ultima versiune.'}
               </p>
             </div>
-            <button className="button dark" onClick={createProject} disabled={!loaded || mediaBusy}>
-              <Plus size={17} /> Proiect nou
-            </button>
+            <div className="heading-actions">
+              <button
+                className="button demo-launch"
+                onClick={() => void openDemo()}
+                disabled={changesDisabled}
+              >
+                <Play size={16} />
+                Demo complet
+              </button>
+              <button
+                className="button dark"
+                onClick={createProject}
+                disabled={!loaded || mediaBusy || exporting}
+              >
+                <Plus size={17} />
+                Proiect nou
+              </button>
+            </div>
           </div>
+          <section className="portfolio-banner" aria-label="Acces independent">
+            <span className="status-dot" />
+            <p>
+              <strong>Studio independent, fără cont.</strong> Compune și prezintă direct din
+              browser. Recomandările locale funcționează fără Ollama sau ChatGPT; AI-ul extern este
+              opțional.
+            </p>
+            {window.location.protocol !== 'file:' && (
+              <a className="button compact" href="./download/Guitar-Composer-Studio.zip" download>
+                Descarcă ZIP
+              </a>
+            )}
+          </section>
           {view === 'library' ? (
             <>
               <div className="library-toolbar">
@@ -945,7 +996,7 @@ export default function App() {
                   className={workspaceTab === 'harmony' ? 'current' : ''}
                   aria-pressed={workspaceTab === 'harmony'}
                   onClick={() => setWorkspaceTab('harmony')}
-                  disabled={mediaBusy}
+                  disabled={navigationLocked}
                 >
                   <Layers3 size={16} />
                   Harmony
@@ -954,7 +1005,7 @@ export default function App() {
                   className={workspaceTab === 'solo' ? 'current' : ''}
                   aria-pressed={workspaceTab === 'solo'}
                   onClick={() => setWorkspaceTab('solo')}
-                  disabled={mediaBusy}
+                  disabled={navigationLocked}
                 >
                   <Music2 size={16} />
                   Melodie
@@ -963,7 +1014,7 @@ export default function App() {
                   className={workspaceTab === 'backing' ? 'current' : ''}
                   aria-pressed={workspaceTab === 'backing'}
                   onClick={() => setWorkspaceTab('backing')}
-                  disabled={mediaBusy}
+                  disabled={navigationLocked}
                 >
                   <Waves size={16} />
                   Backing & export
@@ -971,7 +1022,7 @@ export default function App() {
                 <button
                   className={workspaceTab === 'audio' ? 'current' : ''}
                   aria-pressed={workspaceTab === 'audio'}
-                  disabled={mediaBusy}
+                  disabled={navigationLocked}
                   onClick={() => setWorkspaceTab('audio')}
                 >
                   <Mic2 size={16} />
@@ -980,7 +1031,7 @@ export default function App() {
                 <button
                   className={workspaceTab === 'ai' ? 'current' : ''}
                   aria-pressed={workspaceTab === 'ai'}
-                  disabled={mediaBusy}
+                  disabled={navigationLocked}
                   onClick={() => setWorkspaceTab('ai')}
                 >
                   <Sparkles size={16} />
@@ -1513,7 +1564,7 @@ export default function App() {
                       onWav={() => void exportAudio('wav')}
                     />
                   ) : workspaceTab === 'ai' ? (
-                    <AiAssistant
+                    <CompositionAssistant
                       key={project.id}
                       project={project}
                       disabled={changesDisabled}
@@ -1742,9 +1793,9 @@ export default function App() {
             <p>
               Armonie, fretboard, editor melodic, acompaniament sintetizat, mixaj și export
               MIDI/WAV. Audio Studio oferă captură prin browser, clipuri și backup cu sursele
-              incluse. Asistentul AI folosește Ollama local sau un API cloud opțional, cu propuneri
-              validate înainte de aplicare. Accesul ASIO direct și pachetul Windows nativ necesită
-              etapa desktop.
+              incluse. Asistentul oferă recomandări locale fără servicii externe; modul AI opțional
+              folosește Ollama sau un API cloud, cu propuneri validate înainte de aplicare. Accesul
+              ASIO direct și pachetul Windows nativ necesită etapa desktop.
             </p>
             <h3>Offline pe iPhone</h3>
             <p>

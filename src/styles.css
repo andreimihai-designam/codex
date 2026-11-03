@@ -3403,3 +3403,381 @@ textarea:focus-visible {
 .sidebar {
   overflow-y: auto;
 }
+/* Portfolio edition: immediate local demo, external AI is opt-in. */
+.heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+.heading-actions .demo-launch {
+  background: #e9f3da;
+  border-color: #c8dcad;
+  color: #476834;
+}
+.portfolio-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: -4px 0 24px;
+  padding: 15px 17px;
+  border: 1px solid #dce6d1;
+  border-radius: 9px;
+  background: #edf4e4;
+}
+.portfolio-banner p {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #687d55;
+  flex: 1;
+}
+.portfolio-banner strong {
+  color: #49623a;
+  font-weight: 600;
+}
+.portfolio-banner > .status-dot {
+  width: 7px;
+  height: 7px;
+}
+.portfolio-banner a {
+  text-decoration: none;
+  color: #5d7847;
+}
+.assistant-mode {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 0 0 20px;
+  flex-wrap: wrap;
+}
+.assistant-mode > button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 15px;
+  font-size: 12px;
+  border: 1px solid #dae4cd;
+  border-radius: 7px;
+  background: #f8fbf3;
+  color: #687d55;
+}
+.assistant-mode > button.selected {
+  background: #d9eac3;
+  border-color: #b5ce92;
+  color: #36562a;
+}
+.local-advisor-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 22px;
+  align-items: start;
+}
+.advisor-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 0 22px 22px;
+  gap: 13px;
+}
+.advisor-actions > button {
+  text-align: left;
+  border: 1px solid #dfe8d3;
+  border-radius: 8px;
+  padding: 17px;
+  background: #f7fbf0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  color: #6a8651;
+}
+.advisor-actions > button:hover:not(:disabled) {
+  background: #eaf4da;
+  border-color: #afc98c;
+}
+.advisor-actions strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: #466536;
+}
+.advisor-actions span {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #6a805a;
+}
+.local-advice {
+  margin: 0 22px 22px;
+  padding: 21px;
+  border: 1px solid #e1e8d8;
+  border-radius: 8px;
+  background: #fcfdf9;
+}
+.local-advice h3 {
+  font-size: 13px;
+  color: #52713e;
+  margin-bottom: 14px;
+}
+.local-advice p {
+  font-size: 12px;
+  line-height: 1.95;
+  color: #60764f;
+  white-space: pre-wrap;
+}
+.local-advisor-layout .proposal-preview {
+  margin-top: 0;
+}
+@media (max-width: 1100px) {
+  .local-advisor-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .heading-actions {
+    justify-content: flex-end;
+    max-width: 180px;
+  }
+  .portfolio-banner {
+    align-items: flex-start;
+  }
+  .portfolio-banner > .status-dot {
+    margin-top: 6px;
+  }
+}
+@media (max-width: 760px) {
+  .heading-actions {
+    max-width: 135px;
+    gap: 7px;
+    padding-top: 20px;
+  }
+  .heading-actions .button {
+    font-size: 10px;
+    padding: 8px;
+    gap: 5px;
+  }
+  .portfolio-banner {
+    padding: 13px 14px;
+    gap: 9px;
+    flex-wrap: wrap;
+  }
+  .portfolio-banner p {
+    font-size: 10px;
+    min-width: 200px;
+  }
+  .portfolio-banner a {
+    margin-left: 16px;
+  }
+  .assistant-mode {
+    gap: 7px;
+  }
+  .assistant-mode > button {
+    font-size: 10px;
+    padding: 10px 11px;
+    flex: 1;
+  }
+  .advisor-actions {
+    padding: 0 16px 17px;
+    gap: 10px;
+  }
+  .advisor-actions > button {
+    padding: 14px;
+  }
+  .advisor-actions strong {
+    font-size: 12px;
+  }
+  .advisor-actions span {
+    font-size: 10px;
+  }
+  .local-advice {
+    margin: 0 16px 17px;
+    padding: 17px;
+  }
+  .local-advice p {
+    font-size: 11px;
+  }
+}
+@media (max-width: 430px) {
+  .page-heading {
+    gap: 8px;
+  }
+  .page-heading h1 {
+    font-size: 25px;
+  }
+  .heading-actions {
+    max-width: 112px;
+  }
+  .heading-actions .button {
+    font-size: 9px;
+    padding: 8px 6px;
+    white-space: nowrap;
+  }
+  .advisor-actions {
+    grid-template-columns: 1fr;
+  }
+  .portfolio-banner {
+    margin-bottom: 18px;
+  }
+}
+/* Independent portfolio/demo experience. */
+.heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-shrink: 0;
+}
+.assistant-mode {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  border: 1px solid #dce6d0;
+  border-radius: 9px;
+  background: #edf3e4;
+  padding: 6px;
+  margin-bottom: 21px;
+  width: max-content;
+  max-width: 100%;
+}
+.assistant-mode > button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #697e56;
+  padding: 10px 15px;
+  font-size: 12px;
+}
+.assistant-mode > button.selected {
+  background: white;
+  color: #385a2b;
+  box-shadow: 0 1px 4px #304b2420;
+}
+.local-advisor-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 22px;
+  align-items: start;
+}
+.advisor-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+  padding: 0 22px 22px;
+}
+.advisor-actions > button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  gap: 12px;
+  padding: 20px;
+  background: #f7faf1;
+  border: 1px solid #e0e9d4;
+  border-radius: 8px;
+  color: #5f7e47;
+}
+.advisor-actions > button:hover:not(:disabled) {
+  border-color: #aac584;
+  background: #eff7e3;
+}
+.advisor-actions strong {
+  font-size: 13px;
+  color: #3b5930;
+  font-weight: 550;
+}
+.advisor-actions span {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #718561;
+}
+.local-advice {
+  margin: 0 22px 22px;
+  padding: 22px;
+  background: #fbfcf8;
+  border: 1px solid #e3ead8;
+  border-radius: 8px;
+}
+.local-advice h3 {
+  font-size: 13px;
+  color: #4e6d3c;
+  font-weight: 600;
+  margin-bottom: 13px;
+}
+.local-advice p {
+  font-size: 12px;
+  line-height: 1.95;
+  white-space: pre-wrap;
+  color: #657b55;
+}
+.workspace-footer a {
+  color: #526d3c;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+@media (max-width: 1150px) {
+  .local-advisor-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 760px) {
+  .heading-actions {
+    flex-direction: column;
+    gap: 7px;
+    align-items: stretch;
+    margin-top: 22px;
+  }
+  .heading-actions > .button {
+    font-size: 10px;
+    padding: 9px 10px;
+    gap: 5px;
+  }
+  .heading-actions > .button svg {
+    width: 14px;
+  }
+  .assistant-mode {
+    width: 100%;
+    gap: 4px;
+  }
+  .assistant-mode > button {
+    flex: 1;
+    font-size: 10px;
+    gap: 5px;
+    padding: 10px 8px;
+  }
+  .advisor-actions {
+    gap: 11px;
+    padding: 0 16px 18px;
+  }
+  .advisor-actions > button {
+    padding: 15px;
+    gap: 10px;
+  }
+  .advisor-actions strong {
+    font-size: 12px;
+  }
+  .advisor-actions span {
+    font-size: 10px;
+  }
+  .local-advice {
+    margin: 0 16px 18px;
+    padding: 16px;
+  }
+  .local-advice p {
+    font-size: 11px;
+  }
+  .local-advisor-layout {
+    gap: 17px;
+  }
+}
+@media (max-width: 430px) {
+  .heading-actions > .button {
+    font-size: 9px;
+    padding: 8px;
+  }
+  .advisor-actions {
+    grid-template-columns: 1fr;
+  }
+  .assistant-mode > button {
+    font-size: 9px;
+  }
+  .assistant-mode svg {
+    width: 14px;
+  }
+}

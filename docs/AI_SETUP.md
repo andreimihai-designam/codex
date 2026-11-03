@@ -1,6 +1,9 @@
-# AI setup — local Ollama by default
+# Optional external AI setup
 
-The user chose Ollama and confirmed it is not installed on their Windows PC.
+The default v0.4 assistant uses transparent music rules and requires no model.
+This document applies only after explicitly selecting AI extern (opțional).
+The user previously chose Ollama for that optional model mode and confirmed it
+is not installed on their Windows PC.
 The application contains a real HTTP client, not a bundled language model or a
 rule engine disguised as AI. Core harmony/audio remains usable without Ollama.
 

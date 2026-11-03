@@ -1,20 +1,32 @@
 # Guitar Composer Studio
 
-A local-first guitar harmony workspace. Version 0.3 includes a
+A local-first guitar harmony workspace. Version 0.4 includes a
 Romanian-language Harmony Studio, deterministic theory, an interactive fretboard,
 a piano-roll melody editor, synthesized backing tracks, a four-part mixer,
-MIDI/WAV export, browser audio recording/editing, an Ollama AI assistant and a
-local project library. No account or API key is needed.
+MIDI/WAV export, browser audio recording/editing, an autonomous music-rule advisor
+and a local project library. External AI is optional. No ChatGPT account, Ollama
+installation or API key is required for the default portfolio workflow.
 
-## Open without installing Node.js
+## Open or present the app
 
-Download the repository ZIP from GitHub and extract it completely. In the
-`portable` folder, open `Guitar-Composer-Studio.html` in Microsoft Edge or Google
-Chrome. Opening the root `index.html` from disk also forwards to that portable
-file. This single file includes all application code and styles; it does not
-need npm or a local server. Export your projects as backups before moving the
-file or switching browsers. The portable edition is a browser application, not
-a native Windows installer. To regenerate it from source, run `npm run build:portable`.
+For the standalone release, download `release/Guitar-Composer-Studio.zip`, extract
+it and open **index.html** in Edge/Chrome. This file is the complete bundled app;
+no terminal, Node.js, Ollama or ChatGPT connection is required. In the full source
+ZIP, `portable/Guitar-Composer-Studio.html` remains available as before.
+
+Choose **Demo complet** for an original generated composition with melody,
+backing and an audio clip. The default **Asistent** offers music-rule analysis,
+cadences and melodic sketches. **AI extern (opțional)** is a separate advanced
+mode; there are no automatic provider calls or charges.
+
+For a public laptop/iPhone link, enable static HTTPS hosting. See the exact
+[GitHub Pages setup](docs/PORTFOLIO_DEPLOY.md). `npm run build:release` produces
+both standalone and hosting ZIPs; `npm run publish:pages` uploads built assets to
+the deployment branch, without enabling the host or changing repository privacy.
+On iPhone open the HTTPS site in Safari and choose Add to Home Screen.
+
+Projects are local per browser/device. Export .gcsbundle backups to transfer
+personal compositions; opening the website elsewhere does not synchronize them.
 
 ## Run
 
@@ -97,13 +109,13 @@ identity, validates sizes and SHA-256, and restores the real source WAV bytes.
 Regular .gcs.json remains available for music-only projects. See
 [studio storage and capture details](docs/STUDIO_FORMAT.md).
 
-## Asistent AI — Ollama local
+## Optional external AI — Ollama or cloud
 
 1. Install [Ollama for Windows](https://ollama.com/download/windows).
 2. Quit the Ollama tray app if running. Open `portable/START-AI.cmd` and leave it
    running. In another window open `portable/INSTALL-AI-MODEL.cmd` to download
    `qwen2.5:3b` once. Manual PowerShell commands are in [AI setup](docs/AI_SETUP.md).
-3. Open **Asistent AI**, verify/list models, choose the installed model and send
+3. Open **Asistent → AI extern (opțional)**, verify/list models, choose the installed model and send
    a question. After the initial download, local inference needs no Internet.
 4. Review proposed changes before applying. The previous arrangement is saved
    in History. Model proposals are structurally validated, not automatically trusted.
@@ -141,6 +153,9 @@ qualified; responsive layout checks in Chromium do not establish iOS compatibili
 - `python3 tests/browser_audio_ai.py`: fake-device capture, waveform/editing,
   pan-correct mix, full backup/source restoration, corruption rejection and
   explicitly mocked AI request/preview/budget/cancel/key-isolation flows.
+- `python3 tests/browser_portfolio.py`: Pages-style subpath, complete demo, local
+  advisor, standalone ZIP download, offline reload and mobile layouts. Verifies
+  no external requests and no microphone request for the default demo.
 - `npm run build`: strict TypeScript checking and production build with PWA cache.
 - `python3 tests/browser_smoke.py`: Chromium functional checks against a running
   app at port 5173. Requires Python Playwright and Chromium. Set `CHROMIUM_PATH`
@@ -162,6 +177,7 @@ Windows helper execution are not claimed.
 - [Architecture, limits and next milestones](docs/ARCHITECTURE.md)
 - [Windows 11 / Scarlett 4i4 audio milestone](docs/WINDOWS_AUDIO.md)
 - [Verification record and limits](docs/VERIFICATION.md)
+- [Autonomous portfolio and GitHub Pages](docs/PORTFOLIO_DEPLOY.md)
 - [Central collaboration rules](AGENTS.md)
 
 Native ASIO/WASAPI integration, SQLite/Tauri desktop packaging and automatic

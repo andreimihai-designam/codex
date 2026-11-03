@@ -185,13 +185,14 @@ export default function BackingStudio({
         </section>
         <section className="panel">
           <div className="panel-header">
-            <h2>Ținta audio Windows</h2>
+            <h2>Audio pe dispozitivul tău</h2>
           </div>
           <div className="note-properties">
-            <strong>Windows 11 · Scarlett 4i4</strong>
+            <strong>Browser modern · fără interfață obligatorie</strong>
             <p>
-              Înregistrarea, monitorizarea și driverele WASAPI/ASIO aparțin etapei native. Acest
-              mixer controlează instrumentele sintetizate; nu captează intrarea interfeței.
+              Acest mixer controlează instrumentele sintetizate. În Audio Studio poți importa sau
+              înregistra sunet cu permisiunea browserului. Accesul ASIO direct necesită o aplicație
+              nativă; pentru demo nu este necesar hardware audio special.
             </p>
           </div>
         </section>

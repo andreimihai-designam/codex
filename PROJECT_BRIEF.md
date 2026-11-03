@@ -34,6 +34,15 @@ These defaults do not establish requirements for professional recording.
 5. Windows audio-engine feasibility prototype with actual audio interface.
 6. Separately scoped solo/melody, backing tracks, optional AI and multitrack.
 
+## Portfolio delivery (2026-11-03)
+
+The user approved an autonomous portfolio demo with optional external AI and chose
+GitHub Pages activation from repository settings. v0.4 requires no ChatGPT,
+Ollama, account, terminal or model for composition/demo/local recommendations.
+A full example is synthesized locally; standalone and HTTPS deployment ZIPs are
+provided. User projects remain device-local and transfer via export/import.
+Actual public availability depends on the user enabling Pages for gh-pages/root.
+
 ## Current boundaries
 
 Version 0.3 adds browser Audio Studio (capture/import, nondestructive clips,

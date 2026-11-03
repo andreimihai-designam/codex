@@ -21,3 +21,16 @@ The portable application was served over local HTTP with additional resource
 requests blocked. Cloud browser policy blocks direct file navigation; this does
 not establish a Windows file-launch result. Native ASIO, measured latency and
 universal model accuracy are not implied by passing browser/contract tests.
+
+## v0.4 portfolio checks — 2026-11-03
+
+- 59 unit tests passed, including local-advisor behavior and both ZIP layouts.
+- Portfolio browser test passed under a Pages-style `/codex/` mount: generated
+  complete example, local recommendations, preview/apply, downloadable standalone
+  ZIP, relative manifest/icons, offline reload and 390/768px layouts.
+- The default demo made zero external requests and zero microphone requests.
+  Audio playback used original locally generated content, not an AI model or
+  private recording. External AI remains an explicitly selected optional mode.
+- Static publication dry-run lists only built assets, PWA resources and the ZIP.
+  Public Pages activation/readiness must be recorded separately; a build or branch
+  push alone is not evidence of a live public address.

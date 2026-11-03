@@ -131,3 +131,28 @@ proxy. Do not bypass network policy or present mocked responses as inference.
 Windows/Scarlett capture/latency, Windows command helpers and the user's installed
 model remain external validation steps. The core browser/audio/backup pipeline
 is exercised with fake WebRTC input and actual decoded/rendered PCM.
+
+## 2026-11-03 — Autonomous portfolio edition approved
+
+The user wants access on any laptop/iPhone without ChatGPT or a mandatory Ollama
+installation. They selected an autonomous demo with optional external AI, and
+confirmed they can enable GitHub Pages from repository settings.
+
+Make a transparent rule-based local advisor the default and put the existing
+actual model client behind an explicit optional mode. Never call the local rules
+LLM inference. Add an original locally synthesized demo spanning harmony, melody,
+backing and an audio clip, with no microphone/server/model request. Preserve user
+projects before loading the example. Device data remains browser-local; transfer
+uses project bundles, not implied synchronization.
+
+Build two reproducible ZIPs: an immediately openable standalone index and a full
+HTTPS web distribution with its own downloadable offline ZIP. Use relative asset,
+manifest and scope paths for Pages subfolders; include PNG/Apple icons. Publish
+only generated assets to gh-pages via the existing Git proxy, preserving source
+state and refusing to overwrite an unrelated existing site. No repository
+visibility, account, login, key or paid model is changed automatically.
+
+GitHub API access was denied by the cloud proxy and the unauthenticated repository
+HTML returned 404. Those observations do not establish repository visibility or
+Pages readiness. The user must enable Pages for gh-pages/root; verify the public
+site before presenting a guessed address as a live link.

@@ -1,7 +1,7 @@
 {
   "name": "guitar-composer-studio",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
@@ -11,7 +11,9 @@
     "test:watch": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "build:portable": "tsc -b && node scripts/build-portable.mjs"
+    "build:portable": "tsc -b && node scripts/build-portable.mjs",
+    "build:release": "npm run build && npm run build:portable && node scripts/package-release.mjs",
+    "publish:pages": "node scripts/publish-pages.mjs"
   },
   "dependencies": {
     "@tonaljs/tonal": "^4.10.0",
@@ -23,6 +25,7 @@
     "@types/node": "^24.19.2",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "fflate": "^0.8.2",
     "prettier": "^3.6.2",
     "typescript": "~5.9.3",
     "vite": "^7.2.0",

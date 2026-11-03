@@ -280,7 +280,7 @@ export default function AudioStudio({
                 disabled={locked}
                 onChange={(e) => setDevice(e.target.value)}
               >
-                <option value="">Dispozitiv implicit Windows</option>
+                <option value="">Dispozitivul implicit al sistemului</option>
                 {devices.map((d) => (
                   <option key={d.deviceId} value={d.deviceId}>
                     {d.label || 'Intrare audio'}
@@ -363,8 +363,8 @@ export default function AudioStudio({
           <p className="capture-note">
             {captureInfo ||
               'Permisiunea microfonului este cerută doar când detectezi intrări sau înregistrezi.'}{' '}
-            · Maximum 3 minute per captură. Pentru Scarlett poți folosi direct monitoring; nu activa
-            și monitorizarea software dacă auzi dublu.
+            · Maximum 3 minute per captură. Dacă interfața ta oferă direct monitoring, îl poți
+            folosi; nu activa și monitorizarea software dacă auzi dublu.
           </p>
         </div>
         <div className="timeline-tools">
@@ -722,8 +722,8 @@ export default function AudioStudio({
               automată este locală; MIDI nu poate conține înregistrările.
             </p>
             <small>
-              Scarlett 4i4: browserul folosește intrările expuse de Windows, nu ASIO direct.
-              Funcțiile și nivelurile native trebuie verificate pe interfața reală.
+              Browserul folosește intrările expuse de sistemul de operare, nu ASIO direct. Funcțiile
+              și nivelurile native trebuie verificate pe interfața reală.
             </small>
           </div>
         </section>

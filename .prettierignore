@@ -4,3 +4,4 @@ artifacts
 package-lock.json
 AGENTS.md
 portable/Guitar-Composer-Studio.html
+release/*.zip
