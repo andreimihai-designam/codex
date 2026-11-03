@@ -1,13 +1,12 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, Music2, Sparkles, Trash2, Volume2 } from 'lucide-react';
+import { arrangementBeats, generateMelody, noteName, type MelodyNote } from '../core/composition';
 import {
-  arrangementBeats,
-  chordTimeline,
-  generateMelody,
-  noteName,
-  type MelodyNote,
-} from '../core/composition';
-import { buildChord, keyNotes, pc } from '../core/theory';
+  melodyChordGuides,
+  guideAt,
+  isChordTone,
+  type MelodyChordGuide,
+} from '../core/melodyGuide';
 import type { Project } from '../core/project';
 
 export default function SoloComposer({
@@ -15,21 +14,30 @@ export default function SoloComposer({
   disabled,
   onChange,
   onPreview,
+  selectedChordId,
 }: {
   project: Project;
+  selectedChordId?: string;
   disabled: boolean;
   onChange: (notes: MelodyNote[], checkpoint?: boolean) => void;
   onPreview: (midi: number[]) => void;
 }) {
-  const [measure, setMeasure] = useState(0);
+  const guides = useMemo(() => melodyChordGuides(project), [project.chords]);
+  const initial = guides.find((c) => c.id === selectedChordId);
+  const [measure, setMeasure] = useState(() => Math.floor((initial?.start ?? 0) / 4));
+  const [focusedChordId, setFocusedChordId] = useState(selectedChordId ?? '');
   const [octave, setOctave] = useState(4);
   const [duration, setDuration] = useState(0.5);
   const [velocity, setVelocity] = useState(0.8);
   const [seed, setSeed] = useState(42);
   const [selectedId, setSelectedId] = useState('');
   const selected = project.melody.find((n) => n.id === selectedId);
-  const scale = new Set(keyNotes(project.key).map(pc));
-  const timeline = chordTimeline(project);
+  const focused = guides.find((c) => c.id === focusedChordId) ?? guideAt(guides, measure * 4);
+  const stepGuides = Array.from({ length: 16 }, (_, s) => guideAt(guides, measure * 4 + s / 4));
+  function exploreChord(chord: MelodyChordGuide, jump = true) {
+    setFocusedChordId(chord.id);
+    if (jump) setMeasure(Math.floor(chord.start / 4));
+  }
   const register = Array.from({ length: 24 }, (_, i) => (octave + 1) * 12 + 23 - i).filter(
     (m) => m >= 40 && m <= 88,
   );
@@ -67,16 +75,61 @@ export default function SoloComposer({
           <h3>O melodie, notă cu notă.</h3>
           <p>
             Adaugă note pe grila de șaisprezecimi. Selectează o notă existentă pentru editare sau
-            ștergere. Redarea include armonia și acompaniamentul activ.
+            ștergere. Ghidul urmărește acordurile progresiei; toate celulele rămân editabile,
+            inclusiv notele din afara acordului.
           </p>
         </div>
+        <section className="melody-harmony-guide" aria-label="Note din acordurile progresiei">
+          <div className="guide-heading">
+            <h3>Alege acordul pentru explorare</h3>
+            <span>Toate acordurile progresiei, inclusiv cele cromatice</span>
+          </div>
+          <div
+            className="melody-chord-choices"
+            role="group"
+            aria-label="Acorduri de explorat în melodie"
+          >
+            {guides.map((c) => (
+              <button
+                key={c.id}
+                className={focused?.id === c.id ? 'chosen' : ''}
+                aria-label={`Explorează ${c.symbol}, acordul ${c.index + 1}`}
+                aria-pressed={focused?.id === c.id}
+                onClick={() => exploreChord(c)}
+              >
+                <span>{String(c.index + 1).padStart(2, '0')}</span>
+                <strong>{c.symbol}</strong>
+                <small>{c.notes.join(' · ')}</small>
+              </button>
+            ))}
+          </div>
+          {focused ? (
+            <div className="focused-chord-notes" aria-live="polite">
+              <strong>{focused.symbol}</strong>
+              <span>Note din acord:</span>
+              {focused.notes.map((n) => (
+                <span className="note-pill" key={n}>
+                  {n}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="guide-empty">
+              Adaugă acorduri în Harmony Studio pentru evidențierea notelor. Poți compune în
+              continuare o melodie liberă.
+            </p>
+          )}
+        </section>
         <div className="melody-tools">
           <div className="measure-nav">
             <button
               className="icon-button"
               aria-label="Măsura anterioară"
               disabled={measure === 0}
-              onClick={() => setMeasure((m) => m - 1)}
+              onClick={() => {
+                setMeasure((m) => m - 1);
+                setFocusedChordId('');
+              }}
             >
               <ArrowLeft size={16} />
             </button>
@@ -85,7 +138,10 @@ export default function SoloComposer({
               className="icon-button"
               aria-label="Măsura următoare"
               disabled={measure >= 511}
-              onClick={() => setMeasure((m) => m + 1)}
+              onClick={() => {
+                setMeasure((m) => m + 1);
+                setFocusedChordId('');
+              }}
             >
               <ArrowRight size={16} />
             </button>
@@ -145,33 +201,45 @@ export default function SoloComposer({
               ))}
             </div>
             <div className="roll-chords">
-              <span>ARMONIE</span>
-              {Array.from({ length: 16 }, (_, s) => {
-                const beat = measure * 4 + s / 4;
-                const item = timeline.find((t) => beat >= t.start && beat < t.end);
-                return (
-                  <span key={s} title={item ? buildChord(item.chord).symbol : 'Fără acord'}>
-                    {s % 4 === 0 && item ? buildChord(item.chord).symbol : ''}
-                  </span>
-                );
-              })}
+              <span>ACORD</span>
+              {guides
+                .filter((c) => c.end > measure * 4 && c.start < (measure + 1) * 4)
+                .map((c) => {
+                  const first = Math.round((Math.max(c.start, measure * 4) - measure * 4) * 4),
+                    last = Math.round((Math.min(c.end, (measure + 1) * 4) - measure * 4) * 4);
+                  return (
+                    <button
+                      key={c.id}
+                      style={{ gridColumn: `${first + 2} / span ${last - first}` }}
+                      title={`${c.symbol}: ${c.notes.join(', ')}`}
+                      aria-label={`Note pentru ${c.symbol} în măsura ${measure + 1}`}
+                      onClick={() => exploreChord(c, false)}
+                    >
+                      {c.symbol}
+                    </button>
+                  );
+                })}
             </div>
             {register.map((midi) => (
               <div
                 key={midi}
-                className={`roll-row ${[1, 3, 6, 8, 10].includes(midi % 12) ? 'black-key' : ''}`}
+                className={`roll-row ${isChordTone(midi, focused) ? 'chord-note-row' : ''}`}
               >
                 <button
-                  className="piano-key"
+                  className={`piano-key ${isChordTone(midi, focused) ? 'chord-member' : ''} ${focused?.root === midi % 12 ? 'chord-fundamental' : ''}`}
+                  data-midi={midi}
+                  data-chord-tone={isChordTone(midi, focused)}
                   disabled={disabled}
                   onClick={() => onPreview([midi])}
                   aria-label={`Ascultă ${noteName(midi)}`}
                 >
                   {noteName(midi)}
-                  {scale.has(midi % 12) && <i />}
+                  {isChordTone(midi, focused) && <i title="Notă din acordul selectat" />}
                 </button>
                 {Array.from({ length: 16 }, (_, step) => {
                   const beat = measure * 4 + step / 4;
+                  const guide = stepGuides[step];
+                  const target = isChordTone(midi, guide);
                   const start = project.melody.find((n) => n.midi === midi && n.start === beat);
                   const sustained = project.melody.find(
                     (n) => n.midi === midi && n.start < beat && n.start + n.duration > beat,
@@ -181,9 +249,16 @@ export default function SoloComposer({
                       key={step}
                       aria-label={`${noteName(midi)}, măsura ${measure + 1}, pas ${step + 1}${start ? ', notă existentă' : ''}`}
                       aria-pressed={!!start}
+                      data-chord-tone={target}
+                      data-chord={guide?.symbol ?? ''}
+                      title={
+                        guide
+                          ? `${noteName(midi)} · ${target ? 'notă din' : 'în afara'} ${guide.symbol}`
+                          : noteName(midi)
+                      }
                       disabled={disabled || (!start && project.melody.length >= 512)}
                       onClick={() => toggle(midi, step)}
-                      className={`roll-cell ${step % 4 === 0 ? 'beat-boundary' : ''} ${scale.has(midi % 12) ? 'in-scale' : ''} ${start ? 'note-start' : sustained ? 'note-sustain' : ''} ${start?.id === selectedId ? 'note-selected' : ''}`}
+                      className={`roll-cell ${step % 4 === 0 ? 'beat-boundary' : ''} ${target ? 'chord-target' : ''} ${start ? 'note-start' : sustained ? 'note-sustain' : ''} ${start?.id === selectedId ? 'note-selected' : ''}`}
                     >
                       {start ? <span>{noteName(midi)}</span> : ''}
                     </button>
@@ -195,7 +270,8 @@ export default function SoloComposer({
         </div>
         <div className="roll-legend">
           <span>
-            <i className="legend-dot green" /> Notele gamei sunt marcate pe claviatură
+            <i className="legend-dot green" /> Verde: note din acordul coloanei. Claviatura
+            evidențiază acordul selectat.
           </span>
           <span>
             Un pas = ¼ timp · {Math.ceil(arrangementBeats(project) / 4)} măsuri în proiect

@@ -34,6 +34,20 @@ export const QUALITIES = [
   { suffix: 'add9', label: 'Add 9', formula: '1 · 3 · 5 · 9' },
   { suffix: '9', label: 'Dominant 9', formula: '1 · 3 · 5 · ♭7 · 9' },
   { suffix: 'm9', label: 'Minor 9', formula: '1 · ♭3 · 5 · ♭7 · 9' },
+  { suffix: '5', label: 'Power chord', formula: '1 · 5' },
+  { suffix: '6', label: 'Major cu sextă', formula: '1 · 3 · 5 · 6' },
+  { suffix: 'm6', label: 'Minor cu sextă', formula: '1 · ♭3 · 5 · 6' },
+  { suffix: 'maj9', label: 'Major 9', formula: '1 · 3 · 5 · 7 · 9' },
+  { suffix: '11', label: 'Dominant 11, fără terță', formula: '1 · 5 · ♭7 · 9 · 11' },
+  { suffix: 'm11', label: 'Minor 11', formula: '1 · ♭3 · 5 · ♭7 · 9 · 11' },
+  { suffix: '13', label: 'Dominant 13', formula: '1 · 3 · 5 · ♭7 · 9 · 13' },
+  { suffix: 'maj13', label: 'Major 13', formula: '1 · 3 · 5 · 7 · 9 · 13' },
+  { suffix: 'm13', label: 'Minor 13', formula: '1 · ♭3 · 5 · ♭7 · 9 · 13' },
+  { suffix: '7b5', label: 'Dominant 7 cu cvintă micșorată', formula: '1 · 3 · ♭5 · ♭7' },
+  { suffix: '7#5', label: 'Dominant 7 cu cvintă mărită', formula: '1 · 3 · ♯5 · ♭7' },
+  { suffix: '7b9', label: 'Dominant 7 cu nonă micșorată', formula: '1 · 3 · 5 · ♭7 · ♭9' },
+  { suffix: '7#9', label: 'Dominant 7 cu nonă mărită', formula: '1 · 3 · 5 · ♭7 · ♯9' },
+  { suffix: '7sus4', label: 'Dominant 7 suspendat', formula: '1 · 4 · 5 · ♭7' },
 ] as const;
 export type Quality = (typeof QUALITIES)[number]['suffix'];
 export interface ChordSpec {
@@ -119,7 +133,7 @@ export function analyze(spec: ChordSpec, key: Key): Analysis {
   const degrees = scale.map(pc);
   const degree = degrees.indexOf(pc(spec.root));
   const diatonic = chord.notes.every((n) => degrees.includes(pc(n)));
-  const minor = ['m', 'm7', 'm9', 'dim', 'dim7', 'm7b5'].includes(spec.quality);
+  const minor = ['m', 'm6', 'm7', 'm9', 'm11', 'm13', 'dim', 'dim7', 'm7b5'].includes(spec.quality);
   const base = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'][degree];
   const suffix: Record<Quality, string> = {
     '': '',
@@ -136,6 +150,20 @@ export function analyze(spec: ChordSpec, key: Key): Analysis {
     add9: 'add9',
     '9': '9',
     m9: '9',
+    '5': '5',
+    '6': '(add6)',
+    m6: '(add6)',
+    maj9: 'maj9',
+    '11': '11',
+    m11: '11',
+    '13': '13',
+    maj13: 'maj13',
+    m13: '13',
+    '7b5': '7♭5',
+    '7#5': '7♯5',
+    '7b9': '7♭9',
+    '7#9': '7♯9',
+    '7sus4': '7sus4',
   };
   const roman = base ? (minor ? base.toLowerCase() : base) + suffix[spec.quality] : '—';
   if (diatonic) {
@@ -158,7 +186,7 @@ export function analyze(spec: ChordSpec, key: Key): Analysis {
       diatonic,
     };
   }
-  if (['', '7', '9'].includes(spec.quality)) {
+  if (['', '7', '9', '11', '13', '7b5', '7#5', '7b9', '7#9', '7sus4'].includes(spec.quality)) {
     const target = degrees.indexOf(mod(pc(spec.root) + 5));
     if (target >= 0) {
       const third = mod(degrees[(target + 2) % 7] - degrees[target]);

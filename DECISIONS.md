@@ -156,3 +156,20 @@ GitHub API access was denied by the cloud proxy and the unauthenticated reposito
 HTML returned 404. Those observations do not establish repository visibility or
 Pages readiness. The user must enable Pages for gh-pages/root; verify the public
 site before presenting a guessed address as a live link.
+
+## 2026-11-03 — Progression editing and chord-tone melody guidance
+
+User requested direct access to chord types beyond major/minor and melody guidance
+for every progression chord. Add a quick root/quality editor under the progression,
+with 28 supported qualities and no key-membership restriction. Preserve the advanced
+inversion editor and current schema 3; saved projects remain compatible.
+
+Use a pure progression timeline guide, independent of the key scale. Chord choices
+show spelled notes, focus the piano keys and navigate to the relevant measure. Each
+grid column highlights its actual chord tones, including multiple changes within a
+measure. Neutral piano keys replace incidental black-key highlighting. All notes
+remain editable for passing tones and chromatic composition. External AI is unchanged.
+
+Validation covers extended/altered spelling, inversion/enharmonic pitch membership,
+timeline boundaries, project round-trip, interactive selection/editing/persistence
+and responsive layouts. Publish rebuilt standalone ZIP and Pages assets together.

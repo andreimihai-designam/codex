@@ -3781,3 +3781,238 @@ textarea:focus-visible {
     width: 14px;
   }
 }
+/* Direct chord editing and chord-aware melody guidance. */
+.progression-quick-edit {
+  margin: 0 20px 18px;
+  padding: 15px;
+  background: #f5f9ee;
+  border: 1px solid #dfe9d1;
+  border-radius: 8px;
+  display: grid;
+  grid-template-columns: 120px 1fr 2fr;
+  align-items: end;
+  gap: 12px;
+}
+.progression-quick-edit > div {
+  align-self: center;
+}
+.progression-quick-edit strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 22px;
+  font-weight: 550;
+  letter-spacing: -0.7px;
+}
+.progression-quick-edit label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 10px;
+}
+.progression-quick-edit select {
+  font-size: 11px;
+  width: 100%;
+}
+.progression-quick-edit p {
+  grid-column: 1/-1;
+  color: #657754;
+  font-size: 10px;
+  line-height: 1.8;
+}
+.melody-harmony-guide {
+  padding: 0 20px 20px;
+}
+.guide-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.guide-heading h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4c673a;
+}
+.guide-heading > span {
+  font-size: 10px;
+  color: #70835f;
+}
+.melody-chord-choices {
+  display: flex;
+  overflow-x: auto;
+  gap: 9px;
+  padding: 3px 2px 9px;
+  scrollbar-width: thin;
+}
+.melody-chord-choices > button {
+  min-width: 120px;
+  flex: 1;
+  border: 1px solid #dce6ce;
+  border-radius: 7px;
+  background: #fafcf6;
+  color: #54713f;
+  text-align: left;
+  padding: 11px 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.melody-chord-choices > button.chosen {
+  background: #e6f1d6;
+  border-color: #96b76b;
+  box-shadow: 0 0 0 1px #a6c77c44;
+}
+.melody-chord-choices > button > span {
+  font-size: 9px;
+  color: #738760;
+}
+.melody-chord-choices strong {
+  font-size: 20px;
+  font-weight: 550;
+  letter-spacing: -0.7px;
+}
+.melody-chord-choices small {
+  font-size: 10px;
+  white-space: nowrap;
+  color: #5f7850;
+}
+.focused-chord-notes {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 11px;
+  padding: 12px 13px;
+  border-radius: 7px;
+  background: #f2f7e9;
+  border: 1px solid #e0e9d3;
+  font-size: 11px;
+  color: #657c52;
+}
+.focused-chord-notes > strong {
+  font-size: 17px;
+  color: #3e602b;
+  font-weight: 600;
+  margin-right: 3px;
+}
+.focused-chord-notes .note-pill {
+  background: #e1edcd;
+  border-color: #cbdcb4;
+  color: #375d24;
+  font-size: 11px;
+}
+.guide-empty {
+  font-size: 11px;
+  line-height: 1.8;
+  color: #6d805e;
+}
+.roll-chords {
+  align-items: stretch;
+}
+.roll-chords > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.roll-chords > button {
+  border: 0;
+  border-left: 1px solid #bdcfa8;
+  background: #e9f1df;
+  color: #4f6c3a;
+  font-size: 10px;
+  padding: 4px 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+.roll-chords > button:hover {
+  background: #dcebc8;
+}
+.piano-key.chord-member {
+  background: #d4e7b5;
+  color: #355321;
+  font-weight: 650;
+  border-bottom-color: #b9cf97;
+}
+.piano-key.chord-fundamental {
+  background: #527738;
+  color: #fff;
+  border-bottom-color: #42682a;
+}
+.piano-key.chord-fundamental i {
+  background: #d3eeaa;
+}
+.roll-cell.chord-target:not(.note-start):not(.note-sustain) {
+  background: #edf5e1;
+  box-shadow: inset 0 -1px #dfebcd;
+}
+.roll-cell.chord-target.note-start {
+  background: #afd379;
+}
+.roll-cell.chord-target.note-sustain {
+  background: #c4dda2;
+}
+.roll-legend > span:first-child {
+  align-items: flex-start;
+  max-width: 440px;
+  line-height: 1.8;
+}
+.roll-legend .legend-dot {
+  margin-top: 5px;
+}
+@media (max-width: 760px) {
+  .progression-quick-edit {
+    margin: 0 15px 16px;
+    padding: 13px;
+    grid-template-columns: 90px 1fr;
+    gap: 12px;
+  }
+  .progression-quick-edit > label:last-of-type {
+    grid-column: 1/-1;
+  }
+  .progression-quick-edit label {
+    font-size: 10px;
+  }
+  .progression-quick-edit select {
+    font-size: 11px;
+  }
+  .progression-quick-edit p {
+    font-size: 9px;
+  }
+  .melody-harmony-guide {
+    padding: 0 16px 17px;
+  }
+  .guide-heading {
+    gap: 7px;
+  }
+  .guide-heading h3 {
+    font-size: 12px;
+  }
+  .guide-heading > span {
+    font-size: 9px;
+  }
+  .melody-chord-choices > button {
+    min-width: 112px;
+    padding: 10px 11px;
+  }
+  .melody-chord-choices strong {
+    font-size: 18px;
+  }
+  .focused-chord-notes {
+    padding: 11px;
+    gap: 6px;
+    font-size: 10px;
+  }
+  .focused-chord-notes > strong {
+    font-size: 16px;
+  }
+  .focused-chord-notes .note-pill {
+    font-size: 10px;
+  }
+  .roll-legend > span:first-child {
+    max-width: 100%;
+  }
+}

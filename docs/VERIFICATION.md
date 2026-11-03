@@ -34,3 +34,18 @@ universal model accuracy are not implied by passing browser/contract tests.
 - Static publication dry-run lists only built assets, PWA resources and the ZIP.
   Public Pages activation/readiness must be recorded separately; a build or branch
   push alone is not evidence of a live public address.
+
+## v0.5 chord guidance checks — 2026-11-03
+
+- Production web/PWA, portable HTML and both ZIP releases rebuilt successfully.
+- 62 unit tests passed in 10 files. Added deterministic coverage for progression
+  boundaries, chromatic/enharmonic pitch classes, inversions and saved extended chords.
+  Existing root/quality/inversion tests exercise all 28 offered chord types.
+- `python3 tests/browser_chord_guidance.py` passed in Chromium: all four progression
+  chords, chromatic Db7b9 editing, separate guides within one measure, non-chord note
+  creation, save/reload, Harmony selection handoff and 390/768/1440px overflow checks.
+- `python3 tests/browser_portfolio.py` passed: Pages-style subpath, demo playback,
+  local advisor, ZIP download, PWA offline reload and responsive checks. No external
+  requests, microphone requests or browser errors occurred in that test.
+- Responsive Chromium testing does not replace qualification on a physical iPhone.
+  GitHub Pages activation and the public deployment are separate from these checks.

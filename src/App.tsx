@@ -786,7 +786,7 @@ export default function App() {
             <CircleHelp size={18} /> Ghidul studioului <span>↗</span>
           </button>
           <div className="sidebar-version">
-            GUITAR COMPOSER STUDIO <span>v0.4</span>
+            GUITAR COMPOSER STUDIO <span>v0.5</span>
           </div>
         </div>
       </aside>
@@ -1129,6 +1129,49 @@ export default function App() {
                           </span>
                         </button>
                       </div>
+                      {selected && built && (
+                        <div className="progression-quick-edit">
+                          <div>
+                            <span className="mini-label">SCHIMBĂ ACORDUL SELECTAT</span>
+                            <strong>{built.symbol}</strong>
+                          </div>
+                          <label>
+                            Fundamentală
+                            <select
+                              aria-label="Fundamentală în progresie"
+                              value={selected.root}
+                              disabled={changesDisabled}
+                              onChange={(e) => updateChord({ root: e.target.value })}
+                            >
+                              {ROOTS.map((n) => (
+                                <option key={n}>{n}</option>
+                              ))}
+                            </select>
+                          </label>
+                          <label>
+                            Tip de acord
+                            <select
+                              aria-label="Tip acord în progresie"
+                              value={selected.quality}
+                              disabled={changesDisabled}
+                              onChange={(e) =>
+                                updateChord({ quality: e.target.value as Quality, inversion: 0 })
+                              }
+                            >
+                              {QUALITIES.map((q) => (
+                                <option value={q.suffix} key={q.suffix}>
+                                  {q.suffix || 'maj'} · {q.label}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <p>
+                            Sus, dim, aug, power, sexte, septime, extensii și dominante alterate.
+                            Poți alege și acorduri din afara tonalității; tonalitatea servește
+                            analizei.
+                          </p>
+                        </div>
+                      )}
                       <div className="progression-footer">
                         <span>
                           <span className="legend-dot green" /> Diatonic în tonalitate
@@ -1231,7 +1274,7 @@ export default function App() {
                               >
                                 {QUALITIES.map((q) => (
                                   <option value={q.suffix} key={q.suffix}>
-                                    {q.label}
+                                    {q.suffix ? `${q.suffix} · ${q.label}` : 'maj · Major'}
                                   </option>
                                 ))}
                               </select>
@@ -1575,6 +1618,7 @@ export default function App() {
                     <SoloComposer
                       key={project.id}
                       project={project}
+                      selectedChordId={selected?.id}
                       disabled={changesDisabled}
                       onChange={changeMelody}
                       onPreview={preview}
@@ -1643,7 +1687,7 @@ export default function App() {
               >
                 {QUALITIES.map((q) => (
                   <option value={q.suffix} key={q.suffix}>
-                    {q.label}
+                    {q.suffix ? `${q.suffix} · ${q.label}` : 'maj · Major'}
                   </option>
                 ))}
               </select>
